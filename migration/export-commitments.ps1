@@ -2,8 +2,8 @@
 #
 # Run on a Windows PC that can reach the SQL Server (the same PC you use SSMS on):
 #   powershell -ExecutionPolicy Bypass -File export-commitments.ps1
-# Uses your Windows login by default. If you sign in to SSMS with a SQL login instead, add -SqlLogin
-# (a password box appears; the password is not saved anywhere).
+# Signs in with a SQL Server login (SQL Server Authentication): a box asks for the login and password,
+# which are used only for this run and not saved anywhere. Add -WindowsAuth to use your Windows login instead.
 #
 # Writes one file: actionregister-export.json on your Desktop. It also checks that every attachment is
 # present in the copied files folder (default C:\COMMITMENTS_FILES). The script only reads; it changes nothing.
@@ -13,7 +13,7 @@ param(
   [string]$Database = 'AccessRequestPortal',
   [string]$FilesFolder = 'C:\COMMITMENTS_FILES',
   [string]$OutFile = (Join-Path ([Environment]::GetFolderPath('Desktop')) 'actionregister-export.json'),
-  [switch]$SqlLogin
+  [switch]$WindowsAuth
 )
 $ErrorActionPreference = 'Stop'
 
@@ -23,7 +23,7 @@ $builder['Initial Catalog'] = $Database
 $builder['TrustServerCertificate'] = $true
 $builder['Application Name'] = 'ActionRegister export'
 $conn = New-Object System.Data.SqlClient.SqlConnection
-if ($SqlLogin) {
+if (-not $WindowsAuth) {
   $cred = Get-Credential -Message "SQL login for $Server"
   $pw = $cred.Password.Copy(); $pw.MakeReadOnly()
   $conn.Credential = New-Object System.Data.SqlClient.SqlCredential($cred.UserName, $pw)

@@ -145,6 +145,8 @@
       $('accountDialog').showModal();
     });
     bar.appendChild(b);
+    addInstallButton(bar, 'btn ghost bar-install');
+    bar.appendChild(b); // keep the account button last
   }
   $('accountForm').addEventListener('submit', async (e) => {
     if (e.submitter && e.submitter.value === 'cancel') return;
@@ -299,6 +301,49 @@
       return failed(error);
     }
   }
+
+  // ---- "Install app" (add to the phone's home screen) --------------------
+  // Chrome/Edge offer installing once sw.js is registered; we show our own button for it.
+  // iPhone Safari never offers it, and Samsung Internet's installs get blocked by Google Play Protect,
+  // so for those the button explains what to do instead (same as Flexo Todo).
+  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+  const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isSamsungBrowser = /SamsungBrowser/i.test(navigator.userAgent);
+  let installPrompt = null;
+  const showInstall = (on) => document.querySelectorAll('.install-btn').forEach((b) => { b.hidden = !on; });
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    if (!isSamsungBrowser) installPrompt = e;
+    showInstall(true);
+  });
+  window.addEventListener('appinstalled', () => { showInstall(false); toast('ActionRegister was added to your home screen.'); });
+  async function install() {
+    if (installPrompt) {
+      installPrompt.prompt();
+      await installPrompt.userChoice;
+      installPrompt = null;
+      showInstall(false);
+    } else if (isSamsungBrowser) {
+      if (confirm('Please install ActionRegister from Chrome.\n\nInstalling from Samsung Internet gets blocked by Google Play Protect ("Unsafe app blocked"). '
+        + 'That is a Samsung problem, not the app.\n\nOpen this page in Chrome now? Then tap ⋮ → "Add to home screen" → Install.')) {
+        location.href = 'intent://' + location.host + location.pathname + '#Intent;scheme=https;package=com.android.chrome;end';
+      }
+    } else {
+      alert('To install on iPhone/iPad:\n\n1. Tap the Share button (square with an arrow) at the bottom of Safari\n2. Choose "Add to Home Screen"\n3. Tap "Add"');
+    }
+  }
+  function addInstallButton(where, cls) {
+    if (!where) return;
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'install-btn ' + cls;
+    b.textContent = 'Install app';
+    b.hidden = !(installPrompt || ((isIOS || isSamsungBrowser) && !standalone));
+    b.addEventListener('click', install);
+    where.appendChild(b);
+  }
+  addInstallButton(document.querySelector('.ar-card'), 'ar-link ar-install');
 
   window.ARCloud = { fetch: apiFetch, client: sb, friendly };
   start();

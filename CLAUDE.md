@@ -23,7 +23,7 @@ App id: `actionregister`. Everything in the database is prefixed `ar_`; never al
   Imported files live under `legacy/`.
 - The app URL used in emails is `ar_app_url()` in schema.sql; change it when hosting moves.
 - Admins start as themselves (an admin not on the list picks a person first); while working as someone else a banner (#actas) says so. The choice is not remembered between visits.
-- No service worker (avoid stale caches). Bump the `?v=` numbers in `index.html` when releasing CSS/JS changes.
+- `sw.js` caches nothing (network only; an "offline" page for navigations): it exists so phones offer installing. The "Install app" button (cloud.js) follows Flexo Todo: Chrome prompt, iPhone instructions, Samsung → Chrome. Bump the `?v=` numbers in `index.html` when releasing CSS/JS changes.
 
 ## Testing
 - `supabase/ar_tests.sql`: 48 checks; also run locally against Postgres 16 with the Supabase shim described in

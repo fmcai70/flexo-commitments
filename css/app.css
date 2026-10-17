@@ -21,3 +21,6 @@
 .ar-spacer { flex: 1; }
 .acct { border: 1px solid var(--line); background: transparent; border-radius: 50%; width: 38px; height: 38px; font-size: 17px; flex-shrink: 0; }
 @media (max-width: 560px) { .acct { width: 32px; height: 32px; font-size: 14px; } .who { font-size: 12px; } .who-l { display: none; } }
+.ar-install { display: block; margin: 4px auto 0; }
+.bar-install { min-height: 34px; padding: 5px 12px; font-size: 13px; white-space: nowrap; }
+@media (max-width: 560px) { .bar-install { min-height: 30px; padding: 4px 9px; font-size: 12px; } }

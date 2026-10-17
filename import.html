@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>ActionRegister · Import</title>
+<link rel="icon" type="image/png" href="img/icon-192.png">
+<link rel="stylesheet" href="css/commitments.css?v=1">
+<link rel="stylesheet" href="css/app.css?v=1">
+<style>
+  .imp { max-width: 640px; margin: 0 auto; padding: 28px 16px 60px; }
+  .imp h1 { font-size: 24px; margin: 0 0 6px; }
+  .imp ol { padding-left: 20px; line-height: 1.6; }
+  .imp .step { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin: 14px 0; }
+  .imp .step label { display: block; font-weight: 700; margin-bottom: 8px; }
+  .imp .muted { color: var(--ink2); font-size: 13.5px; }
+  .imp pre { white-space: pre-wrap; background: var(--surface2); border-radius: 8px; padding: 12px; font-size: 13px; }
+</style>
+</head>
+<body>
+<main class="imp">
+  <h1>Import from the old Commitments app</h1>
+  <p class="muted">One time only, by a Flexo admin, on the PC that has the export. Nothing leaves your PC except into
+    ActionRegister's own database and file storage.</p>
+
+  <p id="who" class="muted">Checking your sign-in…</p>
+
+  <div id="form" hidden>
+    <div class="step">
+      <label for="exportFile">1. The export file</label>
+      <input type="file" id="exportFile" accept=".json,application/json">
+      <p class="muted">actionregister-export.json (made by migration/export-commitments.ps1).</p>
+    </div>
+    <div class="step">
+      <label for="filesFolder">2. The attachments folder</label>
+      <input type="file" id="filesFolder" webkitdirectory multiple>
+      <p class="muted">Choose the copied <b>C:\COMMITMENTS_FILES</b> folder. Your browser will ask to confirm the upload.</p>
+    </div>
+    <div class="step">
+      <label><input type="checkbox" id="replace"> Replace what's already in ActionRegister</label>
+      <p class="muted">Only needed to import again. It removes the projects, sub plans and attachments currently in ActionRegister first.</p>
+    </div>
+    <button class="btn" id="go">Import</button>
+  </div>
+
+  <pre id="log" hidden></pre>
+  <p><a href="./">← Back to ActionRegister</a></p>
+</main>
+
+<script src="vendor/supabase-js-2.117.3.min.js"></script>
+<script src="config.js?v=1"></script>
+<script src="js/import.js?v=1"></script>
+</body>
+</html>

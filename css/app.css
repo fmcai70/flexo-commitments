@@ -1,0 +1,24 @@
+/* ActionRegister: sign-in screen, account dialog and loading screen (the app's own look is css/commitments.css). */
+[hidden] { display: none !important; }
+.ar-loading { display: flex; min-height: 100vh; align-items: center; justify-content: center; color: var(--ink2); }
+.ar-auth { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; background: var(--bg); }
+.ar-card { width: min(380px, 100%); background: var(--surface); border-radius: 14px; padding: 28px 24px; box-shadow: 0 6px 30px rgba(10,18,32,.10); text-align: center; }
+.ar-logo { border-radius: 12px; }
+.ar-card h1 { margin: 10px 0 4px; font-size: 24px; }
+.ar-sub { color: var(--ink2); margin: 0 0 18px; }
+.ar-card form, .ar-dialog form { text-align: left; }
+.ar-card label, .ar-dialog label { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; font-size: 13px; color: var(--ink2); }
+.ar-card input, .ar-dialog input { border: 1px solid var(--line); border-radius: 8px; padding: 10px; font-size: 15px; color: var(--ink); background: var(--surface); }
+.ar-block { display: block; width: 100%; margin-top: 8px; text-align: center; text-decoration: none; line-height: 24px; }
+.ar-link { border: none; background: none; color: var(--brand); padding: 10px 0; font-size: 13.5px; }
+.ar-error { color: var(--late); font-size: 13.5px; min-height: 1em; margin: 8px 0 0; }
+.ar-info { color: var(--done); font-size: 13.5px; margin: 6px 0 0; }
+.ar-blocked { line-height: 1.5; margin: 0 0 8px; }
+.ar-meta { color: var(--ink2); font-size: 12.5px; margin: 0 0 10px; word-break: break-all; }
+.ar-dialog { border: none; border-radius: 12px; padding: 22px; width: min(420px, calc(100vw - 32px)); background: var(--surface); color: var(--ink); box-shadow: 0 10px 40px rgba(0,0,0,.25); }
+.ar-dialog::backdrop { background: rgba(10,18,32,.45); }
+.ar-dialog h2 { margin: 0 0 6px; font-size: 18px; }
+.ar-actions { display: flex; gap: 8px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+.ar-spacer { flex: 1; }
+.acct { border: 1px solid var(--line); background: transparent; border-radius: 50%; width: 38px; height: 38px; font-size: 17px; flex-shrink: 0; }
+@media (max-width: 560px) { .acct { width: 32px; height: 32px; font-size: 14px; } .who { font-size: 12px; } .who-l { display: none; } }

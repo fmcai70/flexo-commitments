@@ -3,8 +3,7 @@
 .ar-loading { display: flex; min-height: 100vh; align-items: center; justify-content: center; color: var(--ink2); }
 .ar-auth { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; background: var(--bg); }
 .ar-card { width: min(380px, 100%); background: var(--surface); border-radius: 14px; padding: 28px 24px; box-shadow: 0 6px 30px rgba(10,18,32,.10); text-align: center; }
-.ar-logo { border-radius: 12px; }
-.ar-card h1 { margin: 10px 0 4px; font-size: 24px; }
+.ar-card h1 { margin: 0 0 4px; font-size: 24px; }
 .ar-sub { color: var(--ink2); margin: 0 0 18px; }
 .ar-card form, .ar-dialog form { text-align: left; }
 .ar-card label, .ar-dialog label { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; font-size: 13px; color: var(--ink2); }

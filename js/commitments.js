@@ -76,6 +76,8 @@ function aCls(a){ if (isRec(a)) return recCls(a); const s = a.status === 'done' 
 function pct(p){ if (p.progress) return p.progress.status==='done' ? 100 : p.progress.status==='prog' ? (p.progress.pct||0) : 0; const a = p.activities || []; if (pStatus(p)==='done') return 100; if (!a.length) return 0; return Math.round(100 * a.filter(x=>x.status==='done').length / a.length); }
 const LABEL = { done:'Done', prog:'In progress', todo:'Not started', none:'No estimate', late:'Overdue' };
 const badge = c => `<span class="badge b-${c}">${LABEL[c]}</span>`;
+// Colour for progress bars/rings: how far along it is (done / in progress / not started), never red for late.
+const barCls = p => { const s = pStatus(p); return s === 'done' ? 'done' : s === 'prog' ? 'prog' : 'todo'; };
 const byId = id => S.projects.find(p => p.id === id);
 const managers = () => (S.team.managers || []);
 const isPres = () => isExec(S.me);
@@ -174,21 +176,30 @@ async function loadMembers(){ S.membersLoading = true; try { S.members = await (
 function viewAccess(){
   if (!S.members) { if (!S.membersLoading) loadMembers(); return `<p class="muted" style="margin-top:20px">Loading…</p>`; }
   const act = S.members.filter(m => m.isActive).length;
-  let h = `<h2>People<small>${act} active of ${S.members.length}</small></h2><div class="panel" style="padding:4px 14px">` + S.members.map(m => `<div class="linkrow">
-    <div class="t" style="font-weight:600">${esc(m.name)} ${m.role==='exec'?'<span class="badge b-sp">Executive</span>':''}${m.isAdmin?'<span class="badge b-op">Admin</span>':''}${m.seesAllFiles?'<span class="badge b-link">Sees all files</span>':''}${m.isActive?'':'<span class="badge b-late">Removed</span>'}${m.isActive && !m.email?'<span class="badge b-late">No email</span>':m.isActive && !m.hasAccount?'<span class="badge b-prog">No Flexo account yet</span>':m.isActive && !m.hasAccess?'<span class="badge b-late">No app access</span>':''}</div>
+  const mq = (S.drafts.mq || '').trim().toLowerCase();
+  const list = S.members.filter(m => !mq || [m.name, m.email, m.dept].join(' ').toLowerCase().includes(mq));
+  const tick = (m, f, label, on, extra) => `<label class="tick"><input type="checkbox" data-act="mflag" data-v="${m.id}" data-f="${f}" ${on?'checked':''} ${extra||''}> ${label}</label>`;
+  let h = `<h2>People<small>${act} active of ${S.members.length}</small></h2>
+    <div class="searchbar"><input type="search" class="field" data-draft="mq" placeholder="Search name, email or department" aria-label="Search people" autocomplete="off"></div>
+    <div class="panel" style="padding:4px 14px">` + (list.length ? list.map(m => `<div class="linkrow person${m.isActive?'':' gone'}">
+    <div class="t" style="font-weight:600">${esc(m.name)} ${m.isActive?'':'<span class="badge b-late">Removed</span>'}${m.isActive && !m.email?'<span class="badge b-late">No email</span>':m.isActive && !m.hasAccount?'<span class="badge b-prog">No Flexo account yet</span>':m.isActive && !m.hasAccess?'<span class="badge b-late">No app access</span>':''}</div>
     <div class="muted" style="font-size:12.5px;margin-top:2px">${esc(m.dept)}${m.dept?' · ':''}${m.email?esc(m.email):'no email'}</div>
-    <div class="row" style="margin-top:8px">
-      <button class="btn ghost" style="padding:5px 10px" data-act="mflag" data-v="${m.id}" data-f="isAdmin">${m.isAdmin?'Remove admin':'Make admin'}</button>
-      <button class="btn ghost" style="padding:5px 10px" data-act="mflag" data-v="${m.id}" data-f="seesAllFiles">${m.seesAllFiles?'Own files only':'See all files'}</button>
-      <button class="btn ghost" style="padding:5px 10px" data-act="mflag" data-v="${m.id}" data-f="role">${m.role==='exec'?'Make manager':'Make executive'}</button>
+    <div class="ticks" role="group" aria-label="${esc(m.name)}: roles">
+      ${tick(m, 'role', 'Executive', m.role === 'exec')}
+      ${tick(m, 'isAdmin', 'Admin', m.isAdmin)}
+      ${tick(m, 'seesAllFiles', 'Sees all files', m.seesAllFiles || m.role === 'exec', m.role === 'exec' ? 'disabled title="Executives always see all files"' : '')}
+      ${tick(m, 'isActive', 'Active', m.isActive)}
+    </div>
+    <div class="row" style="margin-top:6px">
       ${m.isActive && m.hasAccount && !m.hasAccess ? `<button class="btn" style="padding:5px 10px" data-act="mgrant" data-v="${m.id}">Give access</button>` : ''}
-      <button class="btn ghost" style="padding:5px 10px" data-act="memail" data-v="${m.id}">${m.email?'Change email':'Add email'}</button>
-      <button class="btn ${m.isActive?'danger':'ghost'}" style="padding:5px 10px" data-act="mflag" data-v="${m.id}" data-f="isActive">${m.isActive?'Remove':'Restore'}</button></div></div>`).join('') + `</div>`;
+      <button class="btn ghost" style="padding:5px 10px" data-act="memail" data-v="${m.id}">${m.email?'Change email':'Add email'}</button></div></div>`).join('')
+    : `<div class="empty" style="border:0">No one matches “${esc(S.drafts.mq.trim())}”.</div>`) + `</div>
+    <p class="muted" style="font-size:12.5px">Executive: sees and changes everything, approves deadline extensions. Admin: manages this list and can work as anyone. Untick Active to remove someone; their projects stay.</p>`;
   h += `<h2>Add a person</h2><div class="panel form">
-    <input class="field" type="email" data-draft="mem-email" placeholder="Flexo email, e.g. lourdes.villaflores@flexo.com.ph" aria-label="Flexo email" autocapitalize="off" autocorrect="off">
-    <input class="field" data-draft="mem-name" placeholder="Name as shown in the app, e.g. Lou Villaflores" aria-label="Name">
-    <input class="field" data-draft="mem-dept" placeholder="Department (optional)" aria-label="Department">
-    <select class="field" data-draft="mem-role" aria-label="Role"><option value="manager">Manager</option><option value="exec">Executive (President / COO)</option></select>
+    <label class="fl">Flexo email<input class="field" type="email" data-draft="mem-email" placeholder="e.g. lourdes.villaflores@flexo.com.ph" autocapitalize="off" autocorrect="off"></label>
+    <label class="fl">Name as shown in the app<input class="field" data-draft="mem-name" placeholder="e.g. Lou Villaflores"></label>
+    <div class="fl2"><label class="fl"><span>Department <span class="muted">(optional)</span></span><input class="field" data-draft="mem-dept"></label>
+    <label class="fl">Role<select class="field" data-draft="mem-role"><option value="manager">Manager</option><option value="exec">Executive (President / COO)</option></select></label></div>
     <div><button class="btn" data-act="addmember">Add person</button></div></div>
     <p class="muted" style="font-size:12.5px">People sign in with their Flexo account (the same email and password as Flexo Todo). Someone without an account yet needs an invite: Supabase → Authentication → Users → Invite user, using the email above. Then tap Give access here. A removed person keeps their projects and can be restored. Names can't be changed because projects refer to them.</p>`;
   return h;
@@ -448,14 +459,27 @@ function summaryPanel(){
   return `<h2>Dashboard${S.filter!=='all'?'<small>'+esc(S.filter)+'</small>':''}</h2>${kpi}<h2>Progress by manager</h2><div class="panel">${rows || '<div class="muted">No projects assigned yet.</div>'}</div>${doneList}`;
 }
 
+// Search box shared by the long lists. Matches title, owner, notes and remarks.
+const qText = () => (S.drafts.q || '').trim().toLowerCase();
+const matchQ = p => { const q = qText(); return !q || [p.title, p.owner, p.assignedBy, p.brief, p.note, p.progress && p.progress.remark].join(' ').toLowerCase().includes(q); };
+const searchBox = (what) => `<div class="searchbar"><input type="search" class="field" data-draft="q" placeholder="Search ${what}" aria-label="Search ${what}" autocomplete="off">${qText() ? `<button class="btn ghost" data-act="qclear">Clear</button>` : ''}</div>`;
+// Long lists show the first few, with a button for the rest (everything shows while searching).
+function moreList(key, items, first, draw){
+  const all = !!S.open['more-' + key] || !!qText() || items.length <= first + 2;
+  return (all ? items : items.slice(0, first)).map(draw).join('')
+    + (items.length > first + 2 && !qText() ? `<div class="morebtn"><button class="btn ghost" data-act="more" data-v="${esc(key)}">${all ? 'Show fewer' : 'Show all ' + items.length}</button></div>` : '');
+}
 function viewManagers(){
-  let h = planBar() + summaryPanel() + `<div id="list-head"></div>` + statBar(PJ().filter(statOk).length);
+  let h = planBar() + summaryPanel() + `<div id="list-head"></div>` + statBar(PJ().filter(statOk).length) + searchBox('projects or managers');
+  let shown = 0;
   managers().forEach(m => {
-    const ps = PJ().filter(p => p.owner === m.name && statOk(p));
+    const ps = PJ().filter(p => p.owner === m.name && statOk(p) && matchQ(p));
     if (!ps.length) return;
+    shown += ps.length;
     const avg = Math.round(ps.reduce((s,p)=>s+pct(p),0)/ps.length);
-    h += `<h2>${esc(m.name)}<small>${ps.length} project${ps.length>1?'s':''} · ${avg}% avg</small></h2><div class="panel" style="padding:4px 14px">` + sortP(ps).map((p, i) => progRow(p, false, i + 1)).join('') + `</div>`;
+    h += `<h2>${esc(m.name)}<small>${ps.length} project${ps.length>1?'s':''} · ${avg}% avg</small></h2><div class="panel" style="padding:4px 14px">` + moreList('mg-' + m.name, sortP(ps), 5, (p, i) => progRow(p, false, i + 1)) + `</div>`;
   });
+  if (!shown) h += `<div class="empty">No projects match${qText() ? ' “' + esc(S.drafts.q.trim()) + '”' : ''}.</div>`;
   return h;
 }
 function sortP(ps){ const r = { late:0, prog:1, none:2, todo:3, done:4 }; return ps.slice().sort((a,b) => r[pCls(a)]-r[pCls(b)] || (a.commitDate||'9999').localeCompare(b.commitDate||'9999')); }
@@ -497,9 +521,11 @@ function viewRequests(){
   h += reqs.length ? reqs.map(reqCard).join('') : `<div class="empty">No extension requests waiting.</div>`;
   const cmReqs = S.projects.filter(p => pendingExt(p) && approverOf(p) !== PRES);
   if (cmReqs.length) h += `<h2>Between co-managers<small>${cmReqs.length} for the assigning manager to decide</small></h2><div class="panel">${cmReqs.map(p => `<div class="linkrow"><div class="flow">${esc(firstName(p.owner))}<span class="arrow">asked</span>${esc(firstName(p.assignedBy))}</div><div style="font-size:13px">${esc(p.title)}: ${fmt(p.extension.forDeadline)} to ${fmt(p.extension.requested)}</div></div>`).join('')}</div>`;
-  const waiting = sortP(S.projects.filter(needsCheckin));
-  h += `<h2>Awaiting manager update<small>${waiting.length}</small></h2>`;
-  h += waiting.length ? `<div class="panel">${waiting.map(p => dayItem({kind:'p',p})).join('')}</div>` : `<div class="empty">All managers with deadlines this week have checked in.</div>`;
+  const allWaiting = S.projects.filter(needsCheckin), waiting = sortP(allWaiting.filter(matchQ));
+  h += `<h2>Awaiting manager update<small>${allWaiting.length}</small></h2>`;
+  if (allWaiting.length > 8) h += searchBox('waiting projects');
+  h += waiting.length ? `<div class="panel">${moreList('waiting', waiting, 10, p => dayItem({kind:'p',p}))}</div>`
+    : `<div class="empty">${allWaiting.length ? 'No waiting projects match your search.' : 'All managers with deadlines this week have checked in.'}</div>`;
   const hist = S.projects.filter(p => (p.deadlineHistory||[]).length);
   if (hist.length) h += `<h2>Approved extensions<small>${hist.length}</small></h2><div class="panel">${hist.map(p => `<div class="item"><span class="bar4 s-${pCls(p)}"></span><div><div class="t">${esc(p.title)}</div><div class="meta">${esc(p.owner)} · ${p.deadlineHistory.map(x => fmt(x.from)+' → '+fmt(x.to)).join(', ')}</div></div></div>`).join('')}</div>`;
   return h;
@@ -507,11 +533,11 @@ function viewRequests(){
 function viewAssign(){
   const mopts = managers().map(m => `<option>${esc(m.name)}</option>`).join('');
   let h = `<h2>Assign a project</h2><div class="panel form">
-    <input class="field" data-draft="new-title" placeholder="Project, e.g. Reduce interest expense" aria-label="Project title">
-    <div class="row" style="margin-top:0"><select class="field grow" data-draft="new-owner" aria-label="Manager">${mopts}</select>
-    <input class="field" type="date" data-draft="new-date" aria-label="Target date"></div>
-    <select class="field" data-draft="new-plan" aria-label="Plan type"><option value="SP">Strategic plan</option><option value="OP">Operational plan</option></select>
-    <textarea class="field" data-draft="new-note" placeholder="Instructions or expected outcome (optional)" aria-label="Instructions"></textarea>
+    <label class="fl">Project title<input class="field" data-draft="new-title" placeholder="e.g. Reduce interest expense"></label>
+    <div class="fl2"><label class="fl">Manager<select class="field" data-draft="new-owner">${mopts}</select></label>
+    <label class="fl">Deadline<input class="field" type="date" data-draft="new-date"></label></div>
+    <label class="fl">Plan<select class="field" data-draft="new-plan"><option value="SP">Strategic plan</option><option value="OP">Operational plan</option></select></label>
+    <label class="fl"><span>Instructions or expected outcome <span class="muted">(optional)</span></span><textarea class="field" data-draft="new-note"></textarea></label>
     <div><button class="btn" data-act="assign">Assign project</button></div></div>`;
   h += `<h2>Add an activity for a manager</h2><div class="panel form">${planForm(S.drafts['r-owner']||'', 'r', true)}</div>`;
   if (S.auth.owner) h += `<p class="muted" style="font-size:12.5px">Managers and their roles are changed on the <b>Access</b> tab.</p>`;
@@ -525,12 +551,12 @@ function planForm(owner, k, forRomy){
     const opt = (p, pre) => `<option value="${p.id}" ${p.id===cur?'selected':''}>${pre}${esc(short(p.title))}</option>`;
     return (o.length?`<optgroup label="Open">${o.map(p=>opt(p,'')).join('')}</optgroup>`:'') + (d.length?`<optgroup label="Completed">${d.map(p=>opt(p,'✓ ')).join('')}</optgroup>`:''); })();
   let h = '';
-  if (forRomy) h += `<select class="field" data-act="rowner" aria-label="Manager"><option value="">Choose a manager…</option>${managers().map(m => `<option ${m.name===owner?'selected':''} value="${esc(m.name)}">${esc(m.name)}</option>`).join('')}</select>`;
+  if (forRomy) h += `<label class="fl">Manager<select class="field" data-act="rowner"><option value="">Choose a manager…</option>${managers().map(m => `<option ${m.name===owner?'selected':''} value="${esc(m.name)}">${esc(m.name)}</option>`).join('')}</select></label>`;
   if (!owner) return h;
   if (!ps.length) return h + `<div class="muted" style="font-size:13px">${forRomy ? esc(firstName(owner)) + ' has no projects. Assign one above first.' : 'No projects yet. Add one below.'}</div>`;
-  return h + `<select class="field" data-act="pickproj" data-k="${k}" aria-label="Project">${popts}</select>
-    <input class="field" data-draft="${k}-text" placeholder="Activity to complete" aria-label="Activity">
-    <div class="row" style="margin-top:0"><label for="${k}-date">Deadline</label><input id="${k}-date" class="field" type="date" data-draft="${k}-date">${repSelect(S.drafts[k+'-rep'], `data-draft="${k}-rep"`)}</div>
+  return h + `<label class="fl">Project<select class="field" data-act="pickproj" data-k="${k}">${popts}</select></label>
+    <label class="fl">Activity to complete<input class="field" data-draft="${k}-text"></label>
+    <div class="fl2"><label class="fl">Deadline<input class="field" type="date" data-draft="${k}-date"></label><label class="fl">Repeats${repSelect(S.drafts[k+'-rep'], `data-draft="${k}-rep"`)}</label></div>
     <div>${helpPicker(S.drafts[k+'-help']||[], owner, 'dhelp', `data-k="${k}-help"`)}</div>
     <div><button class="btn" data-act="quickact" data-k="${k}" data-o="${esc(owner)}">Add activity</button></div>`;
 }
@@ -547,8 +573,12 @@ function checkinBox(p){
   const d = daysTo(p.commitDate), rev = S.open['rev-'+p.id];
   const when = d < 0 ? `was due ${fmt(p.commitDate)} (${-d} day${d===-1?'':'s'} ago)` : d === 0 ? 'is due today' : `is due ${fmt(p.commitDate)} (in ${d} day${d===1?'':'s'})`;
   const dec = p.extension && p.extension.status === 'declined' && p.extension.forDeadline === p.commitDate ? `<div style="font-size:12.5px;color:var(--late);margin-top:4px">${esc(p.extension.decidedBy||'President Romy')} declined the extension to ${fmt(p.extension.requested)}${p.extension.reply?': '+esc(p.extension.reply):''}.</div>` : '';
-  let h = `<div class="alert"><div class="t">${esc(p.title)}</div><div class="meta">This project ${when}. Please confirm where it stands.</div>${dec}
-    <div class="row" style="margin-top:8px"><button class="btn ${S.open['ci-'+p.id]?'ok':'ghost'}" data-act="citoggle" data-v="${p.id}">On track</button><button class="btn ${rev?'':'ghost'}" data-act="revtoggle" data-v="${p.id}">Needs further review</button></div>`;
+  const g = p.progress, now = g ? `<b>${pct(p)}%</b> · ${esc(PST[g.status] || '')}${g.remark ? ' · ' + esc(g.remark) : ''} <span class="muted">(${fmt(g.date)})</span>`
+    : `<b style="color:var(--late)">No estimate yet</b>${p.note ? ' · Last note: ' + esc(p.note) : ''}`;
+  let h = `<div class="alert"><div class="t">${esc(p.title)}</div><div class="meta">This project ${when}. Please confirm where it stands.</div>
+    <div class="cinow">${now}</div>${dec}
+    <div class="row" style="margin-top:8px"><button class="btn ${S.open['ci-'+p.id]?'ok':'ghost'}" data-act="citoggle" data-v="${p.id}">On track</button><button class="btn ${rev?'':'ghost'}" data-act="revtoggle" data-v="${p.id}">Needs further review</button></div>
+    ${S.open['ci-'+p.id] || rev ? '' : `<div class="cihelp"><b>On track</b>: update your progress estimate. <b>Needs further review</b>: ask for a new deadline.</div>`}`;
   if (S.open['ci-'+p.id]) h += `<div style="margin-top:6px">${progForm(p)}</div>`;
   if (rev) h += revForm(p);
   return h + `</div>`;
@@ -581,13 +611,15 @@ function progForm(p){
     <div class="row" style="margin-top:6px"><button class="btn" data-act="pgsave" data-v="${p.id}">Save progress</button>${p.progress?`<button class="btn ghost" data-act="pecancel" data-v="${p.id}">Cancel</button>`:''}${S.pgErr===p.id?'<span class="unsaved" style="color:var(--late)">Add a remark before saving.</span>':hasDraft(p.id)?'<span class="unsaved">Not saved yet. Tap Save progress.</span>':''}</div>`;
   return h;
 }
+const addEst = (p, edit) => edit && !p.progress && !S.open[p.id] && S.me === p.owner && pStatus(p) !== 'done'
+  ? `<div class="addest"><button class="btn ghost" data-act="addest" data-v="${p.id}">+ Add progress estimate</button></div>` : '';
 function progRow(p, edit, n){
   const c = pCls(p), g = p.progress;
   return `<button class="prow${n?' numbered':''}" data-act="toggle" data-v="${p.id}" aria-expanded="${!!S.open[p.id]}">${numBox(n)}<div class="prbody">
     <div class="pt">${esc(p.title)}</div>
-    <div class="pgline"><div class="pgbar"><i class="s-${c}" style="width:${pct(p)}%"></i></div><b>${pct(p)}%</b></div>
+    <div class="pgline"><div class="pgbar"><i class="s-${barCls(p)}" style="width:${pct(p)}%"></i></div><b>${pct(p)}%</b></div>
     <div class="meta">${justBadge(p)}${badge(c)}${planBadge(p)}${spSummary(p)}${p.commitDate?'Due '+fmt(p.commitDate):'No date'}${g?` · updated ${fmt(g.date)}`:' · <b style="color:var(--late)">no estimate yet</b>'}</div>
-    ${g?`<div class="meta">${esc(g.remark)}${g.basedOn?` <span class="muted">(with input from ${esc(firstName(g.basedOn))})</span>`:''}</div>`:''}${pendingInputs(p).length?`<div class="meta"><span class="badge b-prog">${pendingInputs(p).length} helper input awaiting owner</span></div>`:''}</div></button>${S.open[p.id]?card(p,!!edit):''}`;
+    ${g?`<div class="meta">${esc(g.remark)}${g.basedOn?` <span class="muted">(with input from ${esc(firstName(g.basedOn))})</span>`:''}</div>`:''}${pendingInputs(p).length?`<div class="meta"><span class="badge b-prog">${pendingInputs(p).length} helper input awaiting owner</span></div>`:''}</div></button>${addEst(p, edit)}${S.open[p.id]?card(p,!!edit):''}`;
 }
 function viewMyDash(){
   const me = S.me, mine = PJ().filter(p => p.owner === me);
@@ -876,10 +908,10 @@ function viewHelp(){
   out += `<h2>Assigned by you<small>${byMe.length}</small></h2>` + (byMe.length ? `<div class="panel" style="padding:4px 14px">${byMe.map((p, i) => progRow(p, false, i + 1)).join('')}</div>` : '');
   const mopts = managers().filter(m => m.name !== me).map(m => `<option value="${esc(m.name)}">${esc(m.name)}</option>`).join('');
   out += `<div class="panel form" style="margin-top:10px"><div class="sub" style="margin-top:0">Assign a project to a co-manager</div>
-    <input class="field" data-draft="cm-title" placeholder="Project title" aria-label="Project title">
-    <div class="row" style="margin-top:0"><select class="field grow" data-draft="cm-owner" aria-label="Co-manager"><option value="">Choose a co-manager…</option>${mopts}</select>
-    <label for="cm-date">Deadline</label><input id="cm-date" class="field" type="date" data-draft="cm-date"></div>
-    <textarea class="field" data-draft="cm-note" placeholder="What you need from them"></textarea>
+    <label class="fl">Project title<input class="field" data-draft="cm-title"></label>
+    <div class="fl2"><label class="fl">Co-manager<select class="field" data-draft="cm-owner"><option value="">Choose a co-manager…</option>${mopts}</select></label>
+    <label class="fl">Deadline<input class="field" type="date" data-draft="cm-date"></label></div>
+    <label class="fl">What you need from them<textarea class="field" data-draft="cm-note"></textarea></label>
     <div><button class="btn" data-act="cmassign">Assign</button></div></div>`;
   const projs = sortP(helpProjects(me).filter(p => p.plan !== 'CM' || p.assignedBy !== me));
   out += `<h2>Projects you're helping<small>${projs.length}</small></h2>`;
@@ -907,7 +939,7 @@ function viewHelp(){
 function ring(p){
   const v = pct(p), c = pCls(p), r = 14, C = 2*Math.PI*r;
   return `<svg class="ring" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="${r}" fill="none" stroke="var(--todo-bg)" stroke-width="4"/>
-    <circle cx="17" cy="17" r="${r}" fill="none" stroke="var(--${c==='prog'?'prog':c==='done'?'done':c==='late'?'late':'todo'})" stroke-width="4" stroke-linecap="round" stroke-dasharray="${C*v/100} ${C}" transform="rotate(-90 17 17)"/>
+    <circle cx="17" cy="17" r="${r}" fill="none" stroke="var(--${barCls(p)})" stroke-width="4" stroke-linecap="round" stroke-dasharray="${C*v/100} ${C}" transform="rotate(-90 17 17)"/>
     <text x="17" y="21" text-anchor="middle" font-size="9.5" font-weight="700" fill="currentColor">${v}</text></svg>`;
 }
 const numBox = n => n ? `<span class="num" aria-label="No. ${n}">${n}</span>` : '';
@@ -917,7 +949,7 @@ function card(p, edit, n){
   let h = `<div class="card ${c==='late'?'late':''}"><button class="chead" data-act="toggle" data-v="${p.id}" aria-expanded="${open}">${numBox(n)}${ring(p)}
     <div style="flex:1;min-width:0"><div class="t">${esc(p.title)}</div>
     <div class="meta">${justBadge(p)}${badge(c)}${planBadge(p)}${spSummary(p)}${p.assignedBy===COO?'<span class="badge b-link">From COO VLI</span>':''}<span>${p.commitDate?'Commit '+fmt(p.commitDate):'No commitment date'}</span>${withBadge(p)}<span>${acts.filter(a=>a.status==='done').length}/${acts.length} activities</span>${helpers.length?`<span class="badge b-link">Help: ${helpers.map(firstName).map(esc).join(', ')}</span>`:''}${(p.links||[]).length?`<span class="badge b-link">${p.links.length} linked</span>`:''}</div></div></button>`;
-  if (!open) return h + `</div>`;
+  if (!open) return h + addEst(p, edit) + `</div>`;
   const mopts = (sel) => `<option value="">No help needed</option>` + managers().filter(m=>m.name!==p.owner).map(m => `<option ${sel===m.name?'selected':''} value="${esc(m.name)}">Help: ${esc(m.name)}</option>`).join('');
   h += `<div class="cbody">`;
   if (!edit && ciBadge(p)) h += `<div class="row">${ciBadge(p)}</div>`;
@@ -979,12 +1011,24 @@ function card(p, edit, n){
 }
 
 /* ---------- events ---------- */
-document.addEventListener('input', e => { const k = e.target.dataset && e.target.dataset.draft; if (k) S.drafts[k] = e.target.value; if (k && /^pg-/.test(k)) { const id = k.replace(/^pg-(st|rm|pct)-/, ''); const btn = document.querySelector(`[data-act="pgsave"][data-v="${id}"]`); if (btn && !btn.parentNode.querySelector('.unsaved')) btn.insertAdjacentHTML('afterend', '<span class="unsaved">Not saved yet. Tap Save progress.</span>'); }
+function memberFlag(d){
+  const m = (S.members||[]).find(x => String(x.id) === d.v); if (!m) return;
+  const body = { department: m.dept, role: m.role, isAdmin: m.isAdmin, seesAllFiles: m.seesAllFiles, isActive: m.isActive, email: null };
+  if (d.f === 'role') body.role = m.role === 'exec' ? 'manager' : 'exec'; else body[d.f] = !m[d.f];
+  const go = () => api('PUT', '/api/members/' + m.id, body).then(() => { toast(m.name + ' updated.'); S.members = null; return reloadNow(); })
+    .catch(e => { toast(saveErr(e)); render(); });
+  if (d.f === 'isActive' && m.isActive) ask('Remove ' + m.name + '? Their projects stay, and they can be restored later.', 'Remove', go, render);
+  else if (d.f === 'isAdmin' && !m.isAdmin) ask('Make ' + m.name + ' an admin? They can manage this list and work as anyone.', 'Make admin', go, render);
+  else go();
+}
+let qT; document.addEventListener('input', e => { const k = e.target.dataset && e.target.dataset.draft; if (k) S.drafts[k] = e.target.value;
+  if (k === 'q' || k === 'mq') { clearTimeout(qT); qT = setTimeout(render, 200); } if (k && /^pg-/.test(k)) { const id = k.replace(/^pg-(st|rm|pct)-/, ''); const btn = document.querySelector(`[data-act="pgsave"][data-v="${id}"]`); if (btn && !btn.parentNode.querySelector('.unsaved')) btn.insertAdjacentHTML('afterend', '<span class="unsaved">Not saved yet. Tap Save progress.</span>'); }
   const l = e.target.dataset && e.target.dataset.lbl; if (l) { const el = document.getElementById(l); if (el) el.textContent = e.target.value + '%'; } });
 document.addEventListener('change', e => {
   const t = e.target, d = t.dataset;
   if (t.id === 'me'){ if (locked()) { t.value = S.me; return; } S.auth.chose = true; if (t.value) switchTo(t.value); return; }
   if (d.act === 'fileup' && t.files && t.files[0]) { uploadFile(d.k, t.files[0]); t.value = ''; return; }
+  if (d.act === 'mflag') { memberFlag(d); return; }
   if (d.draft && d.draft.startsWith('sp|')){ commitSp(d.draft, t.value); return; }
   if (d.draft){ S.drafts[d.draft] = t.value; return; }
   switch (d.act){
@@ -1018,7 +1062,14 @@ document.addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if (!b || b.tagName === 'SELECT' || b.tagName === 'INPUT') return;
   const d = b.dataset;
   switch (d.act){
-    case 'tab': S.stat = null; S.tab = d.v; render(); window.scrollTo(0,0); break;
+    case 'tab': S.stat = null; S.tab = d.v; delete S.drafts.q; render(); window.scrollTo(0,0); break;
+    case 'qclear': delete S.drafts.q; render(); break;
+    case 'more': S.open['more-' + d.v] = !S.open['more-' + d.v]; render(); break;
+    case 'addest': {
+      S.open[d.v] = true; render();
+      const el = document.querySelector(`[data-act="pgst"][data-v="${CSS.escape(d.v)}"]`);
+      if (el) { el.scrollIntoView({ block: 'center' }); el.focus(); }
+      break; }
     case 'actas': switchTo(d.v || null); break;
     case 'day':
     case 'jump': {
@@ -1155,13 +1206,7 @@ document.addEventListener('click', e => {
     case 'spaddstep': { const sp = subOf(d.v); if (!sp) return; sp.steps.push({ id: uid('t'), text: '', who: sp.assignee, target: '', actual: '' }); saveSub(d.v, true); render(); break; }
     case 'spdelete': ask('Delete this sub plan and everything filled in? This cannot be undone.', 'Delete', () => { delete S.subplans[d.v]; render(); if (S.db) S.db.doc('subplans/' + d.v).delete().catch(e => toast(saveErr(e))); }); break;
     case 'occdone': mut(d.p, c => { const a = c.activities.find(x => x.id === d.a); if (!a) return; a.doneDates = [...new Set((a.doneDates||[]).concat(d.d))].sort(); a.status = nextOcc(a) ? 'doing' : 'done'; }); toast('Marked done for ' + fmt(d.d) + '.'); break;
-    case 'mflag': {
-      const m = (S.members||[]).find(x => String(x.id) === d.v); if (!m) return;
-      const body = { department: m.dept, role: m.role, isAdmin: m.isAdmin, seesAllFiles: m.seesAllFiles, isActive: m.isActive, email: null };
-      if (d.f === 'role') body.role = m.role === 'exec' ? 'manager' : 'exec'; else body[d.f] = !m[d.f];
-      const go = () => api('PUT', '/api/members/' + m.id, body).then(() => { toast(m.name + ' updated.'); S.members = null; return reloadNow(); }).catch(e => toast(saveErr(e)));
-      if (d.f === 'isActive' && m.isActive) ask('Remove ' + m.name + '? Their projects stay, and they can be restored later.', 'Remove', go); else go();
-      break; }
+    case 'mflag': memberFlag(d); break;
     case 'mgrant': {
       const m = (S.members||[]).find(x => String(x.id) === d.v); if (!m) return;
       api('PUT', '/api/members/' + m.id, { department: m.dept, role: m.role, isAdmin: m.isAdmin, seesAllFiles: m.seesAllFiles, isActive: m.isActive })

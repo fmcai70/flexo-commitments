@@ -245,3 +245,27 @@ h3.agday.today{color:var(--ink)}
 #daylist-head,h3.agday{scroll-margin-top:var(--hdr,180px)}
 @media (max-width:560px){ .actas{flex-wrap:nowrap;padding:6px 10px;font-size:12.5px;margin-top:8px} .actas span{flex:1 1 auto} .actas .btn{min-height:32px;padding:4px 10px;font-size:12.5px;white-space:nowrap} }
 .tag.s-prog:not(.act){color:#3a2800}
+
+/* Search and "show more" on long lists */
+.searchbar{display:flex;gap:8px;margin:12px 0 4px}
+.searchbar .field{flex:1;min-height:40px;background:var(--surface)}
+.morebtn{padding:10px 0 8px}
+/* Check-in cards: where the project stands, and what the buttons do */
+.cinow{font-size:13px;margin-top:6px;padding:6px 10px;border-radius:8px;background:var(--surface2)}
+.cihelp{font-size:12.5px;color:var(--ink2);margin-top:6px}
+/* Owner's shortcut to add a progress estimate */
+.addest{padding:0 0 10px 34px}
+.card .addest{padding:0 14px 12px}
+.addest .btn{min-height:34px;padding:5px 12px;font-size:13px}
+/* Labelled form fields */
+label.fl{display:flex;flex-direction:column;gap:4px;font-size:12.5px;font-weight:600;color:var(--ink2)}
+label.fl .field{font-weight:400;color:var(--ink)}
+.fl2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:480px){ .fl2{grid-template-columns:1fr} }
+/* People: tick boxes show each person's roles at a glance */
+.ticks{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:8px}
+.tick{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;min-height:32px;cursor:pointer}
+.tick input{width:18px;height:18px;accent-color:var(--brand);cursor:pointer}
+.tick input:disabled{cursor:default}
+.person.gone .t{color:var(--ink2)}
+.cinow{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}

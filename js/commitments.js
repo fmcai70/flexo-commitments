@@ -29,9 +29,8 @@ const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(
 const initials = n => { const w=String(n||'?').replace(/^(President|Pres\.)\s+/i,'').trim().split(/\s+/); return (w.length>1 ? w[0][0]+w[1][0] : w[0].slice(0,2)).toUpperCase(); };
 const firstName = n => String(n||'').split(/\s+/)[0];
 
-S.me = CFG.me || null;
-if (CFG.canSwitch) { try { const saved = localStorage.getItem('fc_me'); if (saved) S.me = saved; } catch(e){} }
-if (!S.me) S.me = PRES;
+// Everyone starts as themself. Admins may switch ("Viewing as"); an admin who isn't on the list picks a person first.
+S.me = CFG.me || (CFG.canSwitch ? null : PRES);
 
 /* ---------- status logic ---------- */
 function pStatus(p){
@@ -155,7 +154,21 @@ let tt; function toast(m){ const t = document.getElementById('toast'); t.textCon
 S.auth = { on: true, loaded: true, owner: !!CFG.isAdmin, id: CFG.me || 'admin', chose: false };
 const boundName = () => CFG.me || null;
 const locked = () => !CFG.canSwitch;
-function gateNeeded(){ return false; }
+function gateNeeded(){ return !!CFG.canSwitch && !S.me && S.ready; }
+const actingAsOther = () => !!CFG.canSwitch && !!S.me && S.me !== CFG.me;
+function viewGate(){
+  const people = EXECS.concat(managers().map(m => m.name));
+  return `<h2>Who are you working as?</h2><div class="panel" style="padding:14px">
+    <p class="muted" style="margin:0 0 10px">You're an administrator but not on the ActionRegister list yourself. Choose the person whose work you want to see or update.
+    Everything you do is then saved as that person's action (the history notes it was you).</p>
+    <div class="row">${people.map(n => `<button class="btn ghost" data-act="actas" data-v="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`;
+}
+function switchTo(want){
+  const un = unsavedIds();
+  const go = () => { S.me = want; S.tab = null; S.drafts = {}; S.filter = 'all'; S.stat = null; render(); window.scrollTo(0, 0); };
+  if (un.length) { renderHeader(); ask('You have ' + un.length + ' progress estimate' + (un.length>1?'s':'') + ' not saved yet. Switch and discard ' + (un.length>1?'them':'it') + '?', 'Discard and switch', go); return; }
+  go();
+}
 S.members = null;
 async function loadMembers(){ S.membersLoading = true; try { S.members = await (await api('GET', '/api/members')).json(); } catch(e){ S.members = []; toast(saveErr(e)); } S.membersLoading = false; render(); }
 function viewAccess(){
@@ -271,11 +284,19 @@ function helpingMe(){
 function renderHeader(){
   const sel = document.getElementById('me');
   const opts = EXECS.concat(managers().map(m => m.name));
-  if (S.ready && !opts.includes(S.me)) S.me = PRES;
-  sel.innerHTML = opts.map(o => `<option ${o===S.me?'selected':''}>${esc(o)}</option>`).join('');
+  if (S.ready && S.me && !opts.includes(S.me)) S.me = CFG.me && opts.includes(CFG.me) ? CFG.me : (CFG.canSwitch ? null : PRES);
+  sel.innerHTML = (S.me ? '' : '<option value="" selected>Choose a person…</option>') + opts.map(o => `<option value="${esc(o)}" ${o===S.me?'selected':''}>${esc(o)}${o===CFG.me?' (you)':''}</option>`).join('');
   const lk = locked() || gateNeeded(); sel.style.display = lk ? 'none' : ''; let nm = document.getElementById('whoname');
   if (!nm) { nm = document.createElement('b'); nm.id = 'whoname'; nm.style.color = 'var(--ink)'; sel.parentNode.appendChild(nm); }
-  nm.textContent = lk ? (boundName() || 'Not signed in') : ''; nm.style.display = lk ? '' : 'none';
+  nm.textContent = lk && !gateNeeded() ? (boundName() || 'Not signed in') : ''; nm.style.display = nm.textContent ? '' : 'none';
+  // Admin working as someone else: say so plainly, all the time.
+  let ban = document.getElementById('actas');
+  if (!ban) { ban = document.createElement('div'); ban.id = 'actas'; ban.className = 'actas'; ban.setAttribute('role', 'status'); document.querySelector('header.top .bar').after(ban); }
+  ban.hidden = !actingAsOther();
+  if (actingAsOther()) ban.innerHTML = `<span>You're working as <b>${esc(S.me)}</b>. Changes are saved as theirs.</span>`
+    + (CFG.me ? `<button class="btn" data-act="actas" data-v="${esc(CFG.me)}">Back to me</button>` : `<button class="btn" data-act="actas" data-v="">Change person</button>`);
+  // Keep headings that we scroll to clear of the sticky header.
+  document.documentElement.style.setProperty('--hdr', (document.querySelector('header.top').offsetHeight + 8) + 'px');
   const tabs = tabsFor();
   if (!tabs.some(t => t[0] === S.tab)) S.tab = tabs[0][0];
   document.getElementById('tabs').innerHTML = tabs.map(t => `<button role="tab" data-act="tab" data-v="${t[0]}" aria-selected="${t[0]===S.tab}">${t[1]}${t[2]?`<span class="n">${t[2]}</span>`:''}</button>`).join('');
@@ -326,6 +347,7 @@ function calItems(){
   });
   return { map, undated };
 }
+const narrowCal = () => window.innerWidth < 700;
 function viewCalendar(){
   const [y, mo] = S.month.split('-').map(Number);
   const first = new Date(y, mo-1, 1), days = new Date(y, mo, 0).getDate(), lead = first.getDay();
@@ -353,10 +375,18 @@ function viewCalendar(){
   </div>
   <div class="legend"><span><i class="sw s-done"></i>Done</span><span><i class="sw s-prog"></i>In progress</span><span><i class="sw s-todo"></i>Not started</span><span><i class="sw s-none"></i>No estimate</span><span><i class="sw s-late"></i>Overdue</span><span><i class="sw" style="border:1.5px solid var(--ink2)"></i>Activity</span></div>
   <div class="grid">${g}</div>`;
-  // Day list
-  const sel = map[S.selDay] || [];
-  h += `<h2 id="daylist-head">${fmt(S.selDay)}<small>${sel.length ? sel.length + ' due' : 'Nothing due'}</small></h2>`;
-  if (sel.length) h += `<div class="panel daylist">${sel.map(dayItem).join('')}</div>`;
+  if (narrowCal()) {
+    // Phones: the grid only fits initials, so list the whole month under it, day by day.
+    const dates = Object.keys(map).filter(k => k.startsWith(y+'-'+pad(mo)+'-') && map[k].length).sort();
+    h += `<h2 id="daylist-head">${MONL[mo-1]}<small>${dates.reduce((n, k) => n + map[k].length, 0)} due</small></h2>`;
+    h += dates.length ? dates.map(k => `<h3 class="agday${k===TODAY?' today':''}" id="d-${k}">${DOWN[pd(k).getDay()].slice(0,3)}, ${fmt(k)}${k===TODAY?' · Today':''}</h3><div class="panel daylist">${map[k].map(dayItem).join('')}</div>`).join('')
+      : `<div class="panel muted">Nothing due this month.</div>`;
+  } else {
+    // Day list
+    const sel = map[S.selDay] || [];
+    h += `<h2 id="daylist-head">${fmt(S.selDay)}<small>${sel.length ? sel.length + ' due' : 'Nothing due'}</small></h2>`;
+    if (sel.length) h += `<div class="panel daylist">${sel.map(dayItem).join('')}</div>`;
+  }
   if (isPres() || S.filter !== 'all') h += summaryPanel();
   if (undated.length){ const lim = S.showUndated ? undated.length : 8;
     h += `<h2>No commitment date yet<small>${undated.length}</small></h2><div class="panel">${undated.slice(0,lim).map(p => dayItem({kind:'p',p})).join('')}${undated.length>8?`<div style="padding-top:10px"><button class="btn ghost" data-act="undated">${S.showUndated?'Show fewer':'Show all '+undated.length}</button></div>`:''}</div>`; }
@@ -953,10 +983,7 @@ document.addEventListener('input', e => { const k = e.target.dataset && e.target
   const l = e.target.dataset && e.target.dataset.lbl; if (l) { const el = document.getElementById(l); if (el) el.textContent = e.target.value + '%'; } });
 document.addEventListener('change', e => {
   const t = e.target, d = t.dataset;
-  if (t.id === 'me'){ if (locked()) { t.value = S.me; return; } S.auth.chose = true; const want = t.value, un = unsavedIds();
-    const go = () => { S.me = want; S.tab = null; S.drafts = {}; S.filter = 'all'; S.stat = null; try { localStorage.setItem('fc_me', S.me); } catch(err){} render(); };
-    if (un.length) { t.value = S.me; ask('You have ' + un.length + ' progress estimate' + (un.length>1?'s':'') + ' not saved yet. Switch to ' + want + ' and discard ' + (un.length>1?'them':'it') + '?', 'Discard and switch', go); return; }
-    go(); return; }
+  if (t.id === 'me'){ if (locked()) { t.value = S.me; return; } S.auth.chose = true; if (t.value) switchTo(t.value); return; }
   if (d.act === 'fileup' && t.files && t.files[0]) { uploadFile(d.k, t.files[0]); t.value = ''; return; }
   if (d.draft && d.draft.startsWith('sp|')){ commitSp(d.draft, t.value); return; }
   if (d.draft){ S.drafts[d.draft] = t.value; return; }
@@ -992,10 +1019,12 @@ document.addEventListener('click', e => {
   const d = b.dataset;
   switch (d.act){
     case 'tab': S.stat = null; S.tab = d.v; render(); window.scrollTo(0,0); break;
-    case 'day': S.selDay = d.v; render(); break;
+    case 'actas': switchTo(d.v || null); break;
+    case 'day':
     case 'jump': {
       S.selDay = d.v; render();
-      const el = (d.k && document.getElementById('it-' + d.k)) || document.getElementById('daylist-head');
+      const el = (d.act === 'jump' && d.k && document.getElementById('it-' + d.k)) || (narrowCal() && document.getElementById('d-' + d.v)) || document.getElementById('daylist-head');
+      if (d.act === 'day' && !narrowCal()) break;
       if (el){ el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: d.k ? 'center' : 'start' });
         if (d.k){ el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); } }
       break;

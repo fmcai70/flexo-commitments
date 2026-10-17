@@ -1,7 +1,7 @@
 :root{
   --bg:#EDF0F4; --surface:#FFFFFF; --surface2:#F5F7FA; --ink:#15223B; --ink2:#56627A; --line:#D5DBE5;
   --brand:#1C3F73; --brand-ink:#FFFFFF;
-  --done:#2E9A5F; --prog:#E0A11B; --todo:#8C97AA; --late:#CF4239;
+  --done:#23784A; --prog:#E0A11B; --todo:#8C97AA; --late:#B8322A; /* darker green/red: readable text (WCAG AA) */
   --done-bg:#E1F3E9; --prog-bg:#FBF0D6; --todo-bg:#ECEFF4; --late-bg:#FBE3E1;
   --c:#00A3E0; --m:#E0197D; --y:#FFD100; --k:#15223B;
   box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
@@ -9,12 +9,12 @@
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
   --bg:#0F1726; --surface:#172238; --surface2:#1D2A43; --ink:#E6ECF5; --ink2:#9AA7BE; --line:#2A3955;
   --brand:#8FB3EE; --brand-ink:#0F1726;
-  --done-bg:#15352A; --prog-bg:#3A2F12; --todo-bg:#222E45; --late-bg:#3D1C1C; --k:#E6ECF5;
+  --done-bg:#15352A; --prog-bg:#3A2F12; --todo-bg:#222E45; --late-bg:#3D1C1C; --k:#E6ECF5; --done:#2E9A5F; --late:#CF4239;
 }}
 :root[data-theme="dark"]{
   --bg:#0F1726; --surface:#172238; --surface2:#1D2A43; --ink:#E6ECF5; --ink2:#9AA7BE; --line:#2A3955;
   --brand:#8FB3EE; --brand-ink:#0F1726;
-  --done-bg:#15352A; --prog-bg:#3A2F12; --todo-bg:#222E45; --late-bg:#3D1C1C; --k:#E6ECF5;
+  --done-bg:#15352A; --prog-bg:#3A2F12; --todo-bg:#222E45; --late-bg:#3D1C1C; --k:#E6ECF5; --done:#2E9A5F; --late:#CF4239;
 }
 *,*::before,*::after{box-sizing:border-box}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
@@ -79,7 +79,7 @@ h2 small{font-weight:500;color:var(--ink2);font-size:13px;margin-left:6px}
 .item .meta{font-size:12.5px;color:var(--ink2);margin-top:2px}
 .badge{display:inline-block;font-size:11px;font-weight:700;padding:1px 7px;border-radius:10px;margin-right:4px;white-space:nowrap}
 .b-done{background:var(--done-bg);color:var(--done)}
-.b-prog{background:var(--prog-bg);color:#9A6A00}
+.b-prog{background:var(--prog-bg);color:#835A00}
 .b-todo{background:var(--todo-bg);color:var(--ink2)}
 .b-late{background:var(--late-bg);color:var(--late)}
 .b-link{background:var(--surface2);color:var(--brand);border:1px solid var(--line)}
@@ -141,7 +141,7 @@ h2 small{font-weight:500;color:var(--ink2);font-size:13px;margin-left:6px}
 @media (prefers-reduced-motion:reduce){.live.live i{animation:none}}
 @media (max-width:560px){.live{order:3;width:100%}.bar{flex-wrap:wrap}}
 .b-new{background:var(--c);color:#fff}
-.unsaved{font-size:12.5px;font-weight:600;color:#9A6A00;background:var(--prog-bg);padding:4px 8px;border-radius:6px}
+.unsaved{font-size:12.5px;font-weight:600;color:#835A00;background:var(--prog-bg);padding:4px 8px;border-radius:6px}
 .kpi span + span{font-size:10.5px;margin-top:2px}
 button.kpi{font:inherit;color:inherit;cursor:pointer}
 .kpi.link:hover{border-color:var(--brand);box-shadow:0 0 0 1px var(--brand)}
@@ -197,7 +197,7 @@ textarea.field{width:100%;resize:vertical;min-height:56px}
 .act:first-child{border-top:0}
 .st{border:0;border-radius:6px;padding:3px 8px;font-size:11.5px;font-weight:700;min-width:74px}
 .st.todo{background:var(--todo-bg);color:var(--ink2)}
-.st.doing{background:var(--prog-bg);color:#9A6A00}
+.st.doing{background:var(--prog-bg);color:#835A00}
 .st.done{background:var(--done-bg);color:var(--done)}
 .act .txt{font-weight:500}
 .act.isdone .txt{text-decoration:line-through;color:var(--ink2)}
@@ -229,3 +229,19 @@ textarea.field{width:100%;resize:vertical;min-height:56px}
 }
 @media (max-width:560px){ .mgr{grid-template-columns:1fr} .mgr .ct{text-align:left;white-space:normal} }
 @media (max-width:420px){ .wrap{padding:0 10px 90px} .who{font-size:12px} .who select{max-width:130px} }
+
+/* Readability: counts inside a selected filter pill */
+.pillbtn[aria-pressed="true"] .muted{color:inherit;opacity:.85}
+
+/* Admin working as someone else ("Viewing as") */
+.actas{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 0;padding:8px 12px;border-radius:10px;background:var(--prog-bg);border:1px solid var(--prog);font-size:13.5px;color:var(--ink)}
+.actas span{flex:1 1 220px}
+.actas .btn{min-height:34px;padding:5px 12px}
+
+/* Phones: show every tab (wrap instead of scrolling out of sight); month list under the calendar */
+@media (max-width:560px){ nav.tabs{flex-wrap:wrap;overflow:visible;gap:0 2px} nav.tabs button{padding:9px 10px} }
+h3.agday{font-size:14px;margin:16px 0 6px;color:var(--ink2)}
+h3.agday.today{color:var(--ink)}
+#daylist-head,h3.agday{scroll-margin-top:var(--hdr,180px)}
+@media (max-width:560px){ .actas{flex-wrap:nowrap;padding:6px 10px;font-size:12.5px;margin-top:8px} .actas span{flex:1 1 auto} .actas .btn{min-height:32px;padding:4px 10px;font-size:12.5px;white-space:nowrap} }
+.tag.s-prog:not(.act){color:#3a2800}

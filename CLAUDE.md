@@ -22,6 +22,7 @@ App id: `actionregister`. Everything in the database is prefixed `ar_`; never al
   a reserved path by its uploader, reads per `ar_storage_can_read`, deletes only of paths no longer listed.
   Imported files live under `legacy/`.
 - The app URL used in emails is `ar_app_url()` in schema.sql; change it when hosting moves.
+- Admins start as themselves (an admin not on the list picks a person first); while working as someone else a banner (#actas) says so. The choice is not remembered between visits.
 - No service worker (avoid stale caches). Bump the `?v=` numbers in `index.html` when releasing CSS/JS changes.
 
 ## Testing

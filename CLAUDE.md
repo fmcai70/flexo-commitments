@@ -32,7 +32,8 @@ App id: `actionregister`. Everything in the database is prefixed `ar_`; never al
   functions in Postgres (sign-in for each role, assign, upload/download, stale save, Access tab, import page, phone width).
 
 ## Status (2026-10-17)
-Built and tested locally. Owner steps in `SETUP.md` (run schema, Cron, ar-email + webhook, GitHub Pages, import).
+Live: the owner completed every step in `SETUP.md` (schema, Cron, ar-email + webhook, GitHub Pages at
+https://fmcai70.github.io/flexo-commitments/, import). UI review fixes and the new icon (registration mark) are shipped.
 Export done once on 2026-10-17 (14 people, 208 projects, 1 sub plan, 6 attachments; Ricky Mutuc has no email).
 Planned hosting: Hostinger (like Flexo Todo); then make this repo private. Update `ar_app_url()`, the portal's
 `config.js` and Supabase Redirect URLs when it moves.

@@ -22,6 +22,8 @@ end $$;
 -- The test reads a few rows back while acting as a user.
 create or replace function pg_temp.ar_doc(p_id text) returns text language sql security definer as $$
   select doc::text from public.ar_projects where id = p_id $$;
+create or replace function pg_temp.ar_mid(p_name text) returns bigint language sql security definer as $$
+  select id from public.ar_members where display_name = p_name $$;
 create or replace function pg_temp.ar_key(p_id text) returns text language sql security definer as $$
   select storage_key from public.ar_files where id = p_id::uuid $$;
 
@@ -145,6 +147,17 @@ begin
   checks := checks + 1; if r not like 'ok:%' then failures := failures || ('admin adds Fay: ' || r); end if;
   r := pg_temp.ar_try(fay, 'select public.ar_whoami()::text');
   checks := checks + 1; if r not like '%"me": "RLS Fay"%' or r not like '%"allowed": true%' then failures := failures || ('Fay can use the app once added: ' || r); end if;
+  r := pg_temp.ar_try(ann, format('select public.ar_rename_member(%s, %L)::text', pg_temp.ar_mid('RLS Ben'), 'RLS Benny'));
+  checks := checks + 1; if r not like 'err:AR403%' then failures := failures || ('non-admin renames: ' || r); end if;
+  r := pg_temp.ar_try(alice, format('select public.ar_rename_member(%s, %L)::text', pg_temp.ar_mid('RLS Ben'), 'RLS Exa'));
+  checks := checks + 1; if r not like 'err:AR409%' then failures := failures || ('rename to a name already used: ' || r); end if;
+  r := pg_temp.ar_try(alice, format('select public.ar_rename_member(%s, %L)::text', pg_temp.ar_mid('RLS Ben'), 'RLS Benny'));
+  checks := checks + 1; if r not like 'ok:%' then failures := failures || ('admin renames Ben: ' || r); end if;
+  v := pg_temp.ar_doc('rlsT4');
+  checks := checks + 1;
+  if v not like '%"RLS Benny"%' or v like '%"RLS Ben"%' then failures := failures || ('rename reaches helpers inside the project: ' || v); end if;
+  r := pg_temp.ar_try(ben, 'select public.ar_whoami()::text');
+  checks := checks + 1; if r not like '%"me": "RLS Benny"%' then failures := failures || ('renamed person signs in under the new name: ' || r); end if;
   r := pg_temp.ar_try(ann, format('select public.ar_import(%L::jsonb)::text', '{}'));
   checks := checks + 1; if r not like 'err:AR403%' then failures := failures || ('non-admin imports: ' || r); end if;
 
@@ -174,8 +187,8 @@ begin
      or public.ar_subplan_cycle('first-thu', '2026-10-02T00:00:00Z', '2026-11-03') is not null then
     failures := failures || 'sub plan cycle dates'::text;
   end if;
-  select count(*) into n from public.ar_audit_log where acting_as = 'RLS Ben' and entity_id = 'rlsT5';
-  checks := checks + 1; if n <> 1 then failures := failures || format('history notes "as Ben" (got %s)', n); end if;
+  select count(*) into n from public.ar_audit_log where acting_as = 'RLS Benny' and entity_id = 'rlsT5';  -- renamed above
+  checks := checks + 1; if n <> 1 then failures := failures || format('history notes "as Ben", under his new name (got %s)', n); end if;
 
   -- ---- cleanup -------------------------------------------------------------------
   delete from public.ar_files where parent_id like 'rlsT%';

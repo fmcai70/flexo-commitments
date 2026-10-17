@@ -5,7 +5,7 @@
  * ARCloud.fetch() answers those same routes with the ar_* database functions (supabase/schema.sql) and the
  * private 'actionregister' storage bucket, so the screens didn't need rewriting:
  *   GET /api/state            → ar_state           PUT/DELETE /api/projects/{id} → ar_put_project / ar_delete_project
- *   GET/POST/PUT /api/members → ar_members_list…    PUT/DELETE /api/subplans/{id} → ar_put_subplan / ar_delete_subplan
+ *   GET/POST/PUT/PATCH /api/members → ar_members_list, ar_add_member, ar_update_member, ar_rename_member    PUT/DELETE /api/subplans/{id} → ar_put_subplan / ar_delete_subplan
  *   POST/GET/DELETE /api/files → ar_file_begin + upload / ar_file_key + download / ar_file_delete + remove
  */
 (function () {
@@ -262,6 +262,7 @@
             p_is_admin: !!body.isAdmin, p_sees_all_files: !!body.seesAllFiles,
           }));
         }
+        if (method === 'PATCH') return reply(200, await rpc('ar_rename_member', { p_id: Number(id), p_new: body.name }));
         if (method === 'PUT') {
           await rpc('ar_update_member', {
             p_id: Number(id), p_dept: body.department || null, p_role: body.role, p_is_admin: !!body.isAdmin,

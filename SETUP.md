@@ -6,7 +6,7 @@ Nothing here needs a password or secret from anyone; the Microsoft 365 secrets a
 ## 1. Database
 1. Supabase → **SQL Editor** → New query → paste all of `supabase/schema.sql` → **Run**.
    It's safe to run again later. It also creates the private file storage bucket `actionregister`.
-2. Optional check: run `supabase/ar_tests.sql` the same way. Expect "All 43 ActionRegister checks passed ✔".
+2. Optional check: run `supabase/ar_tests.sql` the same way. Expect "All 48 ActionRegister checks passed ✔".
 
 ## 2. Daily reminders (8:00 AM)
 1. Supabase → **Integrations** → **Cron** → enable it (installs `pg_cron`).

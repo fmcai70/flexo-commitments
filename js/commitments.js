@@ -1,6 +1,7 @@
 (function(){
 const CFG = window.__CFG || {};
-const PRES = 'President Romy', COO = 'COO VLI', EXECS = [PRES, COO];
+// The executives come from the people list (Access); PRES is the first one (the President), COO the second.
+let PRES = 'President Romy', COO = 'COO VLI'; const EXECS = [PRES, COO];
 const isExec = n => EXECS.includes(n);
 const S = { plan: 'all', recent: {}, subplans: {},
   projects: [], team: { managers: [] }, db: null, live: false, ready: false,
@@ -192,16 +193,17 @@ function viewAccess(){
     </div>
     <div class="row" style="margin-top:6px">
       ${m.isActive && m.hasAccount && !m.hasAccess ? `<button class="btn" style="padding:5px 10px" data-act="mgrant" data-v="${m.id}">Give access</button>` : ''}
-      <button class="btn ghost" style="padding:5px 10px" data-act="memail" data-v="${m.id}">${m.email?'Change email':'Add email'}</button></div></div>`).join('')
+      <button class="btn ghost" style="padding:5px 10px" data-act="memail" data-v="${m.id}">${m.email?'Change email':'Add email'}</button>
+      <button class="btn ghost" style="padding:5px 10px" data-act="mrename" data-v="${m.id}">Rename</button></div></div>`).join('')
     : `<div class="empty" style="border:0">No one matches “${esc(S.drafts.mq.trim())}”.</div>`) + `</div>
-    <p class="muted" style="font-size:12.5px">Executive: sees and changes everything, approves deadline extensions. Admin: manages this list and can work as anyone. Untick Active to remove someone; their projects stay.</p>`;
+    <p class="muted" style="font-size:12.5px">Executive: sees and changes everything, approves deadline extensions. Admin: manages this list and can work as anyone. Untick Active to remove someone; their projects stay. Rename changes the name everywhere it's used (owner, assigned by, helpers).</p>`;
   h += `<h2>Add a person</h2><div class="panel form">
     <label class="fl">Flexo email<input class="field" type="email" data-draft="mem-email" placeholder="e.g. lourdes.villaflores@flexo.com.ph" autocapitalize="off" autocorrect="off"></label>
     <label class="fl">Name as shown in the app<input class="field" data-draft="mem-name" placeholder="e.g. Lou Villaflores"></label>
     <div class="fl2"><label class="fl"><span>Department <span class="muted">(optional)</span></span><input class="field" data-draft="mem-dept"></label>
     <label class="fl">Role<select class="field" data-draft="mem-role"><option value="manager">Manager</option><option value="exec">Executive (President / COO)</option></select></label></div>
     <div><button class="btn" data-act="addmember">Add person</button></div></div>
-    <p class="muted" style="font-size:12.5px">People sign in with their Flexo account (the same email and password as Flexo Todo). Someone without an account yet needs an invite: Supabase → Authentication → Users → Invite user, using the email above. Then tap Give access here. A removed person keeps their projects and can be restored. Names can't be changed because projects refer to them.</p>`;
+    <p class="muted" style="font-size:12.5px">People sign in with their Flexo account (the same email and password as Flexo Todo). Someone without an account yet needs an invite: Supabase → Authentication → Users → Invite user, using the email above. Then tap Give access here.</p>`;
   return h;
 }
 
@@ -221,7 +223,7 @@ function filesBlock(kind, id, files, owner, extra, canUpload){
     <button class="btn ghost" style="padding:5px 10px" data-act="fview" data-v="${f.id}" data-n="${esc(f.name)}">View</button>
     <button class="btn ghost" style="padding:5px 10px" data-act="fdown" data-v="${f.id}" data-n="${esc(f.name)}">Download</button>
     ${(f.by === S.me || S.me === owner) && S.assets ? `<button class="x" data-act="fdel" data-k="${kind}|${id}" data-v="${f.id}" aria-label="Remove file">×</button>` : ''}</div>`).join('');
-  if (hidden) h += `<div class="muted" style="font-size:12.5px;padding:4px 0">${hidden} more file${hidden>1?'s':''}, visible to the owner, President Romy, COO VLI and the CFO.</div>`;
+  if (hidden) h += `<div class="muted" style="font-size:12.5px;padding:4px 0">${hidden} more file${hidden>1?'s':''}, visible to the owner, ${esc(EXECS.join(', '))} and people allowed to see all files.</div>`;
   if (!vis.length && !hidden) h += `<div class="muted" style="font-size:13px;padding:2px 0 6px">None attached.</div>`;
   if (canUpload) h += S.assets ? `<label class="btn ghost" style="display:inline-block;margin-top:6px;cursor:pointer">Attach Excel file<input type="file" accept=".xlsx,.xlsm,.xls,.csv" style="display:none" data-act="fileup" data-k="${kind}|${id}"></label>`
     : `<div class="muted" style="font-size:12.5px">Attaching needs Contributor access to this page.</div>`;
@@ -572,7 +574,7 @@ function quickAdd(ps){
 function checkinBox(p){
   const d = daysTo(p.commitDate), rev = S.open['rev-'+p.id];
   const when = d < 0 ? `was due ${fmt(p.commitDate)} (${-d} day${d===-1?'':'s'} ago)` : d === 0 ? 'is due today' : `is due ${fmt(p.commitDate)} (in ${d} day${d===1?'':'s'})`;
-  const dec = p.extension && p.extension.status === 'declined' && p.extension.forDeadline === p.commitDate ? `<div style="font-size:12.5px;color:var(--late);margin-top:4px">${esc(p.extension.decidedBy||'President Romy')} declined the extension to ${fmt(p.extension.requested)}${p.extension.reply?': '+esc(p.extension.reply):''}.</div>` : '';
+  const dec = p.extension && p.extension.status === 'declined' && p.extension.forDeadline === p.commitDate ? `<div style="font-size:12.5px;color:var(--late);margin-top:4px">${esc(p.extension.decidedBy||PRES)} declined the extension to ${fmt(p.extension.requested)}${p.extension.reply?': '+esc(p.extension.reply):''}.</div>` : '';
   const g = p.progress, now = g ? `<b>${pct(p)}%</b> · ${esc(PST[g.status] || '')}${g.remark ? ' · ' + esc(g.remark) : ''} <span class="muted">(${fmt(g.date)})</span>`
     : `<b style="color:var(--late)">No estimate yet</b>${p.note ? ' · Last note: ' + esc(p.note) : ''}`;
   let h = `<div class="alert"><div class="t">${esc(p.title)}</div><div class="meta">This project ${when}. Please confirm where it stands.</div>
@@ -586,7 +588,7 @@ function checkinBox(p){
 function revForm(p){
   return `<div class="form" style="margin-top:10px"><div class="row" style="margin-top:0"><label for="rd-${p.id}">Revised deadline</label><input id="rd-${p.id}" class="field" type="date" data-draft="rd-${p.id}" ${p.commitDate?`min="${p.commitDate}"`:''}></div>
     <textarea class="field" data-draft="rr-${p.id}" placeholder="What needs review and why more time is needed"></textarea>
-    <div><button class="btn" data-act="sendext" data-v="${p.id}">Request extension from ${approverOf(p) === PRES ? 'President Romy / COO' : esc(approverOf(p))}</button></div></div>`;
+    <div><button class="btn" data-act="sendext" data-v="${p.id}">Request extension from ${approverOf(p) === PRES ? esc(EXECS.join(' / ')) : esc(approverOf(p))}</button></div></div>`;
 }
 const PST = { todo:'Not started', prog:'In progress', done:'Done' };
 function progSummary(p){
@@ -855,7 +857,7 @@ function repSelect(val, attrs){ return `<select class="field" ${attrs} aria-labe
 function viewMine(){
   const ps = S.projects.filter(p => p.owner === S.me && p.plan !== 'CM');
   const cmN = S.projects.filter(p => p.owner === S.me && p.plan === 'CM').length;
-  if (!ps.length) return quickAdd(ps) + `<div class="empty" style="margin-top:14px">No projects yet. President Romy's assignments and the projects you add will appear here.</div>`;
+  if (!ps.length) return quickAdd(ps) + `<div class="empty" style="margin-top:14px">No projects yet. ${esc(PRES)}'s assignments and the projects you add will appear here.</div>`;
   const c = { done:0, prog:0, todo:0, none:0, late:0 }; ps.forEach(p => c[pCls(p)]++);
   const due = sortP(ps.filter(needsCheckin));
   const alert = due.length ? `<h2>Update required<small>${due.length} due within a week</small></h2>` + due.map(checkinBox).join('') : '';
@@ -948,17 +950,17 @@ function card(p, edit, n){
   const helpers = [...new Set(acts.flatMap(H).filter(x=>x && x!==p.owner))];
   let h = `<div class="card ${c==='late'?'late':''}"><button class="chead" data-act="toggle" data-v="${p.id}" aria-expanded="${open}">${numBox(n)}${ring(p)}
     <div style="flex:1;min-width:0"><div class="t">${esc(p.title)}</div>
-    <div class="meta">${justBadge(p)}${badge(c)}${planBadge(p)}${spSummary(p)}${p.assignedBy===COO?'<span class="badge b-link">From COO VLI</span>':''}<span>${p.commitDate?'Commit '+fmt(p.commitDate):'No commitment date'}</span>${withBadge(p)}<span>${acts.filter(a=>a.status==='done').length}/${acts.length} activities</span>${helpers.length?`<span class="badge b-link">Help: ${helpers.map(firstName).map(esc).join(', ')}</span>`:''}${(p.links||[]).length?`<span class="badge b-link">${p.links.length} linked</span>`:''}</div></div></button>`;
+    <div class="meta">${justBadge(p)}${badge(c)}${planBadge(p)}${spSummary(p)}${COO!==PRES&&p.assignedBy===COO?`<span class="badge b-link">From ${esc(COO)}</span>`:''}<span>${p.commitDate?'Commit '+fmt(p.commitDate):'No commitment date'}</span>${withBadge(p)}<span>${acts.filter(a=>a.status==='done').length}/${acts.length} activities</span>${helpers.length?`<span class="badge b-link">Help: ${helpers.map(firstName).map(esc).join(', ')}</span>`:''}${(p.links||[]).length?`<span class="badge b-link">${p.links.length} linked</span>`:''}</div></div></button>`;
   if (!open) return h + addEst(p, edit) + `</div>`;
   const mopts = (sel) => `<option value="">No help needed</option>` + managers().filter(m=>m.name!==p.owner).map(m => `<option ${sel===m.name?'selected':''} value="${esc(m.name)}">Help: ${esc(m.name)}</option>`).join('');
   h += `<div class="cbody">`;
   if (!edit && ciBadge(p)) h += `<div class="row">${ciBadge(p)}</div>`;
-  if (p.brief) h += `<div class="row muted" style="font-size:13px">From ${esc(p.assignedBy||'President Romy')}: ${esc(p.brief)}</div>`;
+  if (p.brief) h += `<div class="row muted" style="font-size:13px">From ${esc(p.assignedBy||PRES)}: ${esc(p.brief)}</div>`;
   if (edit){
     h += p.commitDate
       ? `<div class="row"><label>Project deadline</label><b>${fmt(p.commitDate)}</b>${(p.deadlineHistory||[]).length?`<span class="muted" style="font-size:12.5px">originally ${fmt(p.deadlineHistory[0].from)}</span>`:''}${ciBadge(p)}
          ${pStatus(p)!=='done'&&!pendingExt(p)?`<button class="btn ghost" data-act="revtoggle" data-v="${p.id}">Request new deadline</button>`:''}</div>${S.open['rev-'+p.id]&&!pendingExt(p)?revForm(p):''}`
-      : `<div class="row"><label for="cd-${p.id}">Project deadline</label><input id="cd-${p.id}" class="field" type="date" data-act="commit" data-v="${p.id}"><span class="muted" style="font-size:12.5px">Changes after this need President Romy's approval.</span></div>`;
+      : `<div class="row"><label for="cd-${p.id}">Project deadline</label><input id="cd-${p.id}" class="field" type="date" data-act="commit" data-v="${p.id}"><span class="muted" style="font-size:12.5px">Changes after this need ${esc(PRES)}'s approval.</span></div>`;
     h += progForm(p);
     if (pendingInputs(p).length) h += `<div style="margin-top:10px">${reviewBox(p)}</div>`;
   } else {
@@ -974,7 +976,7 @@ function card(p, edit, n){
     h += `<li class="act ${a.status==='done'?'isdone':''}">
       ${rc ? `<button class="st ${nx?'doing':'done'}" ${canCycle&&nx?`data-act="occdone" data-p="${p.id}" data-a="${a.id}" data-d="${nx}"`:'disabled'} title="Mark this occurrence done">${nx?'✓ '+fmt(nx):'All done'}</button>`
       : `<button class="st ${a.status}" ${canCycle?`data-act="cyc" data-p="${p.id}" data-a="${a.id}"`:'disabled'}>${a.status==='done'?'Done':a.status==='doing'?'Working':'To do'}</button>`}
-      <div class="txt">${esc(a.text)}${isExec(a.addedBy)?` <span class="badge b-link">From ${a.addedBy===PRES?'Romy':'COO VLI'}</span>`:''}</div>
+      <div class="txt">${esc(a.text)}${isExec(a.addedBy)?` <span class="badge b-link">From ${esc(a.addedBy)}</span>`:''}</div>
       ${edit?`<button class="x" data-act="rmact" data-p="${p.id}" data-a="${a.id}" aria-label="Remove activity">×</button>`:`<span></span>`}
       <div class="ctl">${edit
         ? `<input class="field" type="date" value="${esc(a.due||'')}" data-act="adue" data-p="${p.id}" data-a="${a.id}" aria-label="${rc?'Starts':'Deadline'}" title="${rc?'First date':'Deadline'}">${repSelect(a.repeat, `data-act="arep" data-p="${p.id}" data-a="${a.id}"`)}${rc?`<label style="font-size:12px">until</label><input class="field" type="date" value="${esc(a.until||'')}" data-act="auntil" data-p="${p.id}" data-a="${a.id}" aria-label="Repeat until">`:''}</div><div class="ctl">${helpPicker(H(a), p.owner, 'ahelp', `data-p="${p.id}" data-a="${a.id}"`)}`
@@ -1048,7 +1050,7 @@ document.addEventListener('change', e => {
         toast('Moved to ' + dest + '.'); }, () => render());
       break;
     }
-    case 'commit': { const p = byId(d.v); if (p && p.commitDate && !isPres()) { toast('Deadline changes need President Romy\'s approval.'); render(); break; } mut(d.v, c => { c.commitDate = t.value; }); break; }
+    case 'commit': { const p = byId(d.v); if (p && p.commitDate && !isPres()) { toast('Deadline changes need ' + PRES + '\'s approval.'); render(); break; } mut(d.v, c => { c.commitDate = t.value; }); break; }
     case 'arep': mut(d.p, c => { const a = c.activities.find(x => x.id === d.a); if (a) { a.repeat = t.value; if (t.value !== 'none' && !a.due) a.due = TODAY; } }); break;
     case 'auntil': mut(d.p, c => { const a = c.activities.find(x => x.id === d.a); if (a) a.until = t.value; }); break;
     case 'adue': mut(d.p, c => { const a = c.activities.find(x => x.id === d.a); if (a) a.due = t.value; }); break;
@@ -1127,7 +1129,7 @@ document.addEventListener('click', e => {
     case 'dhelp-rm': S.drafts[d.k] = (S.drafts[d.k]||[]).filter(x => x !== d.h); render(); break;
     case 'revtoggle': S.open['rev-'+d.v] = !S.open['rev-'+d.v]; render(); break;
     case 'citoggle': S.open['ci-'+d.v] = !S.open['ci-'+d.v]; S.open['pe-'+d.v] = S.open['ci-'+d.v]; S.open['rev-'+d.v] = false; render(); break;
-    case 'ontrack': mut(d.v, c => { c.checkin = { status:'ontrack', date: TODAY, forDeadline: c.commitDate }; }); toast('Marked on track. President Romy can see this.'); break;
+    case 'ontrack': mut(d.v, c => { c.checkin = { status:'ontrack', date: TODAY, forDeadline: c.commitDate }; }); toast('Marked on track. ' + PRES + ' can see this.'); break;
     case 'sendext': {
       const p = byId(d.v), nd = S.drafts['rd-'+d.v], why = (S.drafts['rr-'+d.v]||'').trim();
       if (!nd){ toast('Pick the revised deadline.'); return; }
@@ -1135,10 +1137,10 @@ document.addEventListener('click', e => {
       if (!why){ toast('Say briefly what needs review.'); return; }
       mut(d.v, c => { c.checkin = { status:'review', date: TODAY, forDeadline: c.commitDate }; c.extension = { status:'pending', requested: nd, reason: why, forDeadline: c.commitDate, requestedAt: TODAY, by: S.me }; });
       delete S.drafts['rd-'+d.v]; delete S.drafts['rr-'+d.v]; S.open['rev-'+d.v] = false;
-      toast('Extension request sent to ' + (approverOf(byId(d.v)) === PRES ? 'President Romy and COO VLI' : approverOf(byId(d.v))) + '.'); break;
+      toast('Extension request sent to ' + (approverOf(byId(d.v)) === PRES ? EXECS.join(' and ') : approverOf(byId(d.v))) + '.'); break;
     }
     case 'approve': case 'decline': {
-      if (!(approverOf(byId(d.v)) === S.me || (approverOf(byId(d.v)) === PRES && isPres()))) { toast('Only ' + (approverOf(byId(d.v)) === PRES ? 'President Romy or COO VLI' : approverOf(byId(d.v))) + ' can decide this.'); return; }
+      if (!(approverOf(byId(d.v)) === S.me || (approverOf(byId(d.v)) === PRES && isPres()))) { toast('Only ' + (approverOf(byId(d.v)) === PRES ? EXECS.join(' or ') : approverOf(byId(d.v))) + ' can decide this.'); return; }
       const reply = (S.drafts['rp-'+d.v]||'').trim(), ok = d.act === 'approve';
       mut(d.v, c => { const e = c.extension; if (!e) return; e.status = ok ? 'approved' : 'declined'; e.reply = reply; e.decidedAt = TODAY; e.decidedBy = S.me;
         if (ok) { c.deadlineHistory = (c.deadlineHistory||[]).concat({ from: c.commitDate, to: e.requested, approvedAt: TODAY, reason: e.reason }); c.commitDate = e.requested; }
@@ -1207,6 +1209,18 @@ document.addEventListener('click', e => {
     case 'spdelete': ask('Delete this sub plan and everything filled in? This cannot be undone.', 'Delete', () => { delete S.subplans[d.v]; render(); if (S.db) S.db.doc('subplans/' + d.v).delete().catch(e => toast(saveErr(e))); }); break;
     case 'occdone': mut(d.p, c => { const a = c.activities.find(x => x.id === d.a); if (!a) return; a.doneDates = [...new Set((a.doneDates||[]).concat(d.d))].sort(); a.status = nextOcc(a) ? 'doing' : 'done'; }); toast('Marked done for ' + fmt(d.d) + '.'); break;
     case 'mflag': memberFlag(d); break;
+    case 'mrename': {
+      const m = (S.members||[]).find(x => String(x.id) === d.v); if (!m) return;
+      const name = (window.prompt('New name for ' + m.name + ' (as it should appear in the app):', m.name) || '').trim();
+      if (!name || name === m.name) return;
+      ask('Rename ' + m.name + ' to ' + name + '? Their projects, sub plans and history move to the new name.', 'Rename', () =>
+        api('PATCH', '/api/members/' + m.id, { name }).then(r => r.json()).then(r => {
+          if (S.me === m.name) S.me = name;
+          if (CFG.me === m.name) CFG.me = name;
+          toast(m.name + ' is now ' + name + ' (' + r.projects + ' project' + (r.projects === 1 ? '' : 's') + ' updated).');
+          S.members = null; return reloadNow();
+        }).catch(e => toast(saveErr(e))));
+      break; }
     case 'mgrant': {
       const m = (S.members||[]).find(x => String(x.id) === d.v); if (!m) return;
       api('PUT', '/api/members/' + m.id, { department: m.dept, role: m.role, isAdmin: m.isAdmin, seesAllFiles: m.seesAllFiles, isActive: m.isActive })
@@ -1282,8 +1296,9 @@ S.db = { doc(path){
 S.assets = true; S.live = true;
 
 function applyState(st){
-  if (st.execs && st.execs.length) EXECS.splice(0, EXECS.length, ...st.execs);
+  if (st.execs && st.execs.length) { EXECS.splice(0, EXECS.length, ...st.execs); PRES = EXECS[0]; COO = EXECS[1] || EXECS[0]; }
   S.team = { managers: st.managers || [], seesAll: st.seesAllFiles || [] };
+  if (st.me && st.me !== CFG.me) { if (S.me === CFG.me || !CFG.canSwitch) S.me = st.me; CFG.me = st.me; }
   const fresh = st.projects.map(p => { VER['projects/' + p.id] = p._v; delete p._v; return p; });
   if (!firstLoad) fresh.forEach(p => { if (prevStamp[p.id] !== p.updatedAt && p.updatedBy && p.updatedBy !== S.me) S.recent[p.id] = Date.now(); });
   fresh.forEach(p => prevStamp[p.id] = p.updatedAt);

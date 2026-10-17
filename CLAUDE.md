@@ -14,7 +14,7 @@ App id: `actionregister`. Everything in the database is prefixed `ar_`; never al
 - Tables have RLS on and no policies; the app only calls the security-definer `ar_*` functions, which port
   `CommitmentRules.cs` (CheckProjectWrite / CheckSubplanWrite / NeedsCheckin / LatestSubplanCycle) and `ApiController.cs`.
 - Members are linked to Flexo accounts by email (`ar_members.email`, `user_id` filled on first sign-in). Projects
-  refer to people by display name, so names can't change. Access = `has_app_access('actionregister')` and (active member
+  refer to people by display name; `ar_rename_member` (Access → Rename) changes a name everywhere it appears as a whole JSON value. Access = `has_app_access('actionregister')` and (active member
   or admin). Admin = `ar_members.is_admin` or a Flexo admin (`profiles.role = 'admin'`).
 - Emails: functions insert into `ar_outbox`; a Database Webhook calls `supabase/functions/ar-email` (Graph). Daily
   digests: `ar_daily_reminders()` via pg_cron at 00:00 UTC (8:00 Manila), de-duplicated by `ar_notification_log`.
@@ -26,7 +26,7 @@ App id: `actionregister`. Everything in the database is prefixed `ar_`; never al
 - No service worker (avoid stale caches). Bump the `?v=` numbers in `index.html` when releasing CSS/JS changes.
 
 ## Testing
-- `supabase/ar_tests.sql`: 43 checks; also run locally against Postgres 16 with the Supabase shim described in
+- `supabase/ar_tests.sql`: 48 checks; also run locally against Postgres 16 with the Supabase shim described in
   flexo-todo-app's CLAUDE.md (load Flexo Todo's schema.sql first).
 - Browser: Playwright with `vendor/supabase-js-*` routed to a mock whose `rpc` goes to a local server running the real
   functions in Postgres (sign-in for each role, assign, upload/download, stale save, Access tab, import page, phone width).

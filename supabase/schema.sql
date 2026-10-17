@@ -544,6 +544,65 @@ begin
     format('role=%s, admin=%s, active=%s', p_role, p_is_admin, p_is_active));
 end $$;
 
+-- Renaming a person. Projects refer to people by name, so every place the old name appears as a whole
+-- value (owner, assigned by, helpers, who updated, who decided, …) is changed too. Names inside free text
+-- (titles, notes, remarks) are left as written.
+create or replace function public.ar_json_rename(j jsonb, p_old text, p_new text) returns jsonb
+language plpgsql immutable as $$
+begin
+  case jsonb_typeof(j)
+    when 'object' then
+      return coalesce((select jsonb_object_agg(k, public.ar_json_rename(v, p_old, p_new)) from jsonb_each(j) e(k, v)), '{}'::jsonb);
+    when 'array' then
+      return coalesce((select jsonb_agg(public.ar_json_rename(v, p_old, p_new) order by i)
+                       from jsonb_array_elements(j) with ordinality a(v, i)), '[]'::jsonb);
+    when 'string' then
+      return case when j #>> '{}' = p_old then to_jsonb(p_new) else j end;
+    else
+      return j;
+  end case;
+end $$;
+
+create or replace function public.ar_rename_member(p_id bigint, p_new text)
+returns jsonb language plpgsql volatile security definer set search_path = public as $$
+declare
+  nm text := trim(coalesce(p_new, ''));
+  old text;
+  pat text;
+  n_projects int; n_subplans int;
+begin
+  if not (public.ar_allowed() and public.ar_is_admin()) then perform public.ar_err('AR403', 'Admins only.'); end if;
+  select display_name into old from public.ar_members where id = p_id;
+  if old is null then perform public.ar_err('AR404', 'That person is no longer on the list.'); end if;
+  if length(nm) not between 2 and 100 then perform public.ar_err('AR400', 'Enter the name as it should appear in the app.'); end if;
+  if nm = old then return jsonb_build_object('projects', 0, 'subplans', 0); end if;
+  if exists (select 1 from public.ar_members where display_name = nm) then
+    perform public.ar_err('AR409', nm || ' is already on the list.');
+  end if;
+  pat := '%' || to_jsonb(old)::text || '%';   -- the old name as a whole JSON string
+
+  update public.ar_members set display_name = nm, updated_at = now() where id = p_id;
+  update public.ar_projects set doc = public.ar_json_rename(doc, old, nm),
+    owner = case when owner = old then nm else owner end,
+    assigned_by = case when assigned_by = old then nm else assigned_by end,
+    updated_by = case when updated_by = old then nm else updated_by end,
+    version = version + 1, updated_at = now()
+  where owner = old or assigned_by = old or doc::text like pat;
+  get diagnostics n_projects = row_count;
+  update public.ar_subplans set doc = public.ar_json_rename(doc, old, nm),
+    owner = case when owner = old then nm else owner end,
+    assignee = case when assignee = old then nm else assignee end,
+    updated_by = case when updated_by = old then nm else updated_by end,
+    version = version + 1, updated_at = now()
+  where owner = old or assignee = old or doc::text like pat;
+  get diagnostics n_subplans = row_count;
+  update public.ar_files set uploaded_by = nm where uploaded_by = old;
+  update public.ar_audit_log set acting_as = nm where acting_as = old;
+  perform public.ar_audit('Member', nm, 'Renamed', public.ar_own_member(),
+    format('%s → %s (%s projects, %s sub plans)', old, nm, n_projects, n_subplans));
+  return jsonb_build_object('projects', n_projects, 'subplans', n_subplans);
+end $$;
+
 -- ---------------------------------------------------------------------
 -- Excel attachments (files live in the private 'actionregister' storage bucket)
 -- ---------------------------------------------------------------------
@@ -834,6 +893,7 @@ begin
   foreach f in array array['ar_whoami()', 'ar_state(text)', 'ar_put_project(text,jsonb,text,text)', 'ar_delete_project(text,text)',
     'ar_put_subplan(text,jsonb,text,text)', 'ar_delete_subplan(text,text)', 'ar_members_list()',
     'ar_add_member(text,text,text,text,boolean,boolean)', 'ar_update_member(bigint,text,text,boolean,boolean,boolean,text)',
+    'ar_rename_member(bigint,text)',
     'ar_file_begin(text,text,text,bigint,text)', 'ar_file_key(text,text)', 'ar_file_delete(text,text)', 'ar_import(jsonb,boolean)',
     'ar_storage_can_read(text)', 'ar_storage_can_upload(text)', 'ar_storage_can_delete(text)', 'ar_allowed()', 'ar_is_admin()'] loop
     execute format('revoke all on function public.%s from public, anon', f);

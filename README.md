@@ -22,7 +22,7 @@ Setup steps for the owner: **`SETUP.md`**.
 | `config.js` | Supabase address and public key |
 | `import.html`, `js/import.js` | One-time import of the old data and attachments |
 | `supabase/schema.sql` | Tables, rules, emails, reminders (run in Supabase SQL Editor) |
-| `supabase/ar_tests.sql` | 43 permission checks against the real database |
+| `supabase/ar_tests.sql` | 48 permission checks against the real database |
 | `supabase/functions/ar-email/` | Sends ActionRegister emails through Microsoft 365 |
 | `migration/export-commitments.ps1` | Exports the old SQL Server data (run on a Flexo PC) |
 | `vendor/` | Supabase and SheetJS libraries, served from this site |

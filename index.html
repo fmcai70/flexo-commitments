@@ -2,6 +2,13 @@
 <html lang="en" data-version="7">
 <head>
 <meta charset="utf-8">
+<script>
+// ActionRegister moved to https://flexo.com.ph/actionregister/ (2026-10-21). The old GitHub Pages address forwards
+// there, keeping the page and the #... part, so sign-in and password-reset links sent before the move still work.
+if (location.hostname === 'fmcai70.github.io') {
+  location.replace('https://flexo.com.ph/actionregister/' + location.pathname.replace(/^\/flexo-commitments\/?/, '') + location.search + location.hash);
+}
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1C3F73">
 <meta name="apple-mobile-web-app-capable" content="yes">

@@ -4,5 +4,5 @@ window.AR_CONFIG = {
   supabaseUrl: 'https://wlqxdgjxgvnamgiojwge.supabase.co',
   supabaseKey: 'sb_publishable_8gUb_7V26fIWP1GyXt7NZQ_uPsR1IoC',
   bucket: 'actionregister',
-  portalUrl: 'https://fmcai70.github.io/flexo-portal/',
+  portalUrl: 'https://flexo.com.ph/portal/',
 };

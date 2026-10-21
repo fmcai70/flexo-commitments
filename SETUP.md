@@ -23,7 +23,7 @@ Nothing here needs a password or secret from anyone; the Microsoft 365 secrets a
    - HTTP header `x-webhook-secret` = the same value as the Flexo Todo notifications webhook (the `WEBHOOK_SECRET`).
    Emails are sent from the `MAIL_FROM` mailbox (todo@flexo.com.ph) with subjects starting "[ActionRegister]".
 
-## 4. Website (GitHub Pages, until it moves to Hostinger)
+## 4. Website (GitHub Pages, until it moves to Hostinger: see `HOSTINGER.md`)
 1. GitHub → `fmcai70/flexo-commitments` → **Settings → Pages** → Source **Deploy from a branch**, branch `main`, folder `/ (root)` → Save.
    After a minute the app is at https://fmcai70.github.io/flexo-commitments/.
 2. Supabase → **Authentication → URL Configuration → Redirect URLs** → add `https://fmcai70.github.io/flexo-commitments/`.

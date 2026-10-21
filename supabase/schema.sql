@@ -119,7 +119,7 @@ revoke all on public.ar_members, public.ar_projects, public.ar_subplans, public.
 -- ---------------------------------------------------------------------
 -- The app's address, used in emails. Change it when the app moves (e.g. to Hostinger) and re-run.
 create or replace function public.ar_app_url() returns text language sql immutable as $$
-  select 'https://fmcai70.github.io/flexo-commitments/'
+  select 'https://flexo.com.ph/actionregister/'
 $$;
 
 create or replace function public.ar_err(p_code text, p_msg text) returns void language plpgsql as $$

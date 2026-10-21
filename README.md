@@ -11,7 +11,7 @@ the same stack as Flexo Todo: plain HTML/CSS/JS, Supabase (database, sign-in, fi
   access. Adding someone in Access gives them app access automatically.
 - **Rules:** unchanged from the old app (see the top of `supabase/schema.sql`).
 
-Setup steps for the owner: **`SETUP.md`**.
+Setup steps for the owner: **`SETUP.md`**. Moving the website to `https://flexo.com.ph/actionregister/`: **`HOSTINGER.md`**.
 
 ## Files
 | File | What it is |

@@ -35,5 +35,8 @@ App id: `actionregister`. Everything in the database is prefixed `ar_`; never al
 Live: the owner completed every step in `SETUP.md` (schema, Cron, ar-email + webhook, GitHub Pages at
 https://fmcai70.github.io/flexo-commitments/, import). UI review fixes and the new icon (registration mark) are shipped.
 Export done once on 2026-10-17 (14 people, 208 projects, 1 sub plan, 6 attachments; Ricky Mutuc has no email).
-Planned hosting: Hostinger (like Flexo Todo); then make this repo private. Update `ar_app_url()`, the portal's
-`config.js` and Supabase Redirect URLs when it moves.
+Hosting moves to **https://flexo.com.ph/actionregister/**: a folder `public_html/actionregister` beside the company
+WordPress site on Hostinger, deployed with hPanel Git (steps in `HOSTINGER.md`). `ar_app_url()` in schema.sql already
+says the new address (the owner runs that one statement in Supabase); the portal's `config.js` tile changes once the
+new address works. Then make this repo private and drop the GitHub Pages address from Supabase Redirect URLs.
+All paths in the app are relative, so it works in a sub-folder unchanged.

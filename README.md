@@ -1,3 +1,7 @@
+> **Moved (2026-10-21):** ActionRegister now lives in the private `fmcai70/flexo-portal` repository (folder
+> `actionregister/`, history kept) and runs at https://flexo.com.ph/portal/actionregister/. This repository only keeps
+> the old GitHub Pages address forwarding there; don't change the app here.
+
 # ActionRegister
 
 Flexo's register of commitments: MAIN plans (strategic / operational), projects assigned between co-managers,
